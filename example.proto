@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package example;
+
+// Example user message
+message User {
+  int32 id = 1;
+  string name = 2;
+  string email = 3;
+  int32 age = 4;
+  bool active = 5;
+  repeated string tags = 6;
+  Address address = 7;
+}
+
+// Address message
+message Address {
+  string street = 1;
+  string city = 2;
+  string country = 3;
+  string zip_code = 4;
+}
+
+// Product message
+message Product {
+  int32 id = 1;
+  string name = 2;
+  string description = 3;
+  double price = 4;
+  int32 stock = 5;
+  repeated string categories = 6;
+}
