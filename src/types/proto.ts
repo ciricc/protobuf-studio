@@ -5,6 +5,9 @@ export interface ProtoState {
   availableMessages: string[];
   selectedMessage: string | null;
   error: string | null;
+  loadedFiles: Map<string, string>; // путь файла → содержимое
+  unresolvedImports: string[]; // список недостающих импортов
+  mainFile: string | null; // имя главного файла
 }
 
 export interface ValidationResult {

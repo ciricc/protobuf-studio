@@ -5,6 +5,7 @@ import { MessageSelector } from './components/MessageSelector';
 import { JsonEditor } from './components/JsonEditor';
 import { OutputPanel } from './components/OutputPanel';
 import { ErrorPanel } from './components/ErrorPanel';
+import { ImportResolver } from './components/ImportResolver';
 import { useProtobuf } from './hooks/useProtobuf';
 import { useConversion } from './hooks/useConversion';
 
@@ -22,6 +23,7 @@ function App() {
     availableMessages,
     selectedMessage,
     error: protoError,
+    unresolvedImports,
     loadProtoFile,
     selectMessage,
     validateJson,
@@ -103,6 +105,17 @@ function App() {
           />
 
           {protoError && <ErrorPanel error={protoError} />}
+
+          {unresolvedImports.length > 0 && (
+            <ImportResolver
+              unresolvedImports={unresolvedImports}
+              onFileSelect={(importPath, file) => loadProtoFile(file, importPath)}
+              onSkip={() => {
+                // Пользователь решил продолжить без разрешения всех импортов
+                console.log('Skipped unresolved imports:', unresolvedImports);
+              }}
+            />
+          )}
 
           {root && (
             <MessageSelector

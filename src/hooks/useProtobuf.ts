@@ -13,24 +13,140 @@ export const newRoot = (): Promise<Root> => {
   ]);
 };
 
+// Helper function to extract import statements from proto file text
+function extractImportsFromText(text: string): string[] {
+  const imports: string[] = [];
+  const importRegex = /^\s*import\s+["']([^"']+)["']\s*;/gm;
+  let match;
+
+  while ((match = importRegex.exec(text)) !== null) {
+    const importPath = match[1];
+    // Пропускаем google well-known types
+    if (!importPath.startsWith('google/protobuf/')) {
+      imports.push(importPath);
+    }
+  }
+
+  console.log('[extractImportsFromText] Found imports:', imports);
+  return imports;
+}
+
+// Helper function to detect unresolved imports
+function detectUnresolvedImports(
+  loadedFilesContent: Map<string, string>,
+  loadedFilesPaths: Set<string>
+): string[] {
+  const unresolved = new Set<string>();
+
+  console.log('[detectUnresolvedImports] Loaded files:', Array.from(loadedFilesPaths));
+
+  // Проверяем импорты в каждом загруженном файле
+  for (const [filePath, content] of loadedFilesContent.entries()) {
+    console.log(`[detectUnresolvedImports] Checking file: ${filePath}`);
+    const imports = extractImportsFromText(content);
+
+    for (const importPath of imports) {
+      console.log(`[detectUnresolvedImports] Checking import: ${importPath}`);
+
+      // Проверяем, загружен ли этот импорт
+      if (!loadedFilesPaths.has(importPath)) {
+        // Пробуем нормализованный путь
+        const normalized = normalizeImportPath(filePath, importPath);
+        console.log(`[detectUnresolvedImports] Normalized path: ${normalized}`);
+
+        if (!loadedFilesPaths.has(normalized)) {
+          console.log(`[detectUnresolvedImports] ❌ Unresolved: ${importPath}`);
+          unresolved.add(importPath);
+        } else {
+          console.log(`[detectUnresolvedImports] ✅ Found normalized: ${normalized}`);
+        }
+      } else {
+        console.log(`[detectUnresolvedImports] ✅ Already loaded: ${importPath}`);
+      }
+    }
+  }
+
+  const unresolvedArray = Array.from(unresolved);
+  console.log('[detectUnresolvedImports] Final unresolved imports:', unresolvedArray);
+  return unresolvedArray;
+}
+
+// Helper function to normalize import paths
+function normalizeImportPath(origin: string, target: string): string {
+  if (target.startsWith('./') || target.startsWith('../')) {
+    const originParts = origin.split('/');
+    originParts.pop(); // remove filename
+    const targetParts = target.split('/');
+
+    for (const part of targetParts) {
+      if (part === '..') {
+        originParts.pop();
+      } else if (part !== '.') {
+        originParts.push(part);
+      }
+    }
+
+    return originParts.join('/');
+  }
+  return target;
+}
+
 export const useProtobuf = () => {
   const [state, setState] = useState<ProtoState>({
     root: null,
     availableMessages: [],
     selectedMessage: null,
     error: null,
+    loadedFiles: new Map<string, string>(),
+    unresolvedImports: [],
+    mainFile: null,
   });
 
-  const loadProtoFile = useCallback(async (file: File) => {
-    try {
-      const text = await file.text();
+  // Общая функция для парсинга файлов
+  const parseFiles = useCallback(
+    async (
+      filesMap: Map<string, string>,
+      mainFileName: string | null,
+      currentSelectedMessage: string | null
+    ) => {
+      console.log('[parseFiles] Starting parse with files:', Array.from(filesMap.keys()));
+      console.log('[parseFiles] Main file:', mainFileName);
 
       const root = await newRoot();
 
-      // STEP 1: Parse user's proto file FIRST (parse() overwrites root.nested)
-      parse(text, root, { keepCase: false });
+      // Устанавливаем resolvePath для разрешения импортов
+      root.resolvePath = (origin: string, target: string) => {
+        console.log(`[resolvePath] origin="${origin}", target="${target}"`);
 
-      // Extract all message types
+        if (filesMap.has(target)) {
+          console.log(`[resolvePath] ✅ Found direct: ${target}`);
+          return target;
+        }
+
+        const normalized = normalizeImportPath(origin, target);
+        console.log(`[resolvePath] Normalized: ${normalized}`);
+
+        if (filesMap.has(normalized)) {
+          console.log(`[resolvePath] ✅ Found normalized: ${normalized}`);
+          return normalized;
+        }
+
+        console.log(`[resolvePath] ❌ Not found: ${target}`);
+        return target;
+      };
+
+      // Парсим все загруженные файлы
+      for (const [path, content] of filesMap.entries()) {
+        console.log(`[parseFiles] Parsing file: ${path}`);
+        try {
+          parse(content, root, { keepCase: false });
+          console.log(`[parseFiles] ✅ Successfully parsed: ${path}`);
+        } catch (parseError) {
+          console.error(`[parseFiles] ❌ Failed to parse ${path}:`, parseError);
+        }
+      }
+
+      // Извлекаем сообщения
       const messages: string[] = [];
       const extractMessages = (namespace: any, prefix = '') => {
         if (!namespace || !namespace.nested) return;
@@ -43,7 +159,6 @@ export const useProtobuf = () => {
             messages.push(fullName);
           }
 
-          // Recursively check nested namespaces
           if (item.nested) {
             extractMessages(item, fullName);
           }
@@ -52,25 +167,55 @@ export const useProtobuf = () => {
 
       extractMessages(root);
 
-      setState({
+      // Обнаруживаем неразрешенные импорты
+      const unresolved = detectUnresolvedImports(filesMap, new Set(filesMap.keys()));
+
+      return {
         root,
         availableMessages: messages,
-        selectedMessage: messages.length > 0 ? messages[0] : null,
+        selectedMessage: currentSelectedMessage || (messages.length > 0 ? messages[0] : null),
         error: null,
-      });
+        loadedFiles: filesMap,
+        unresolvedImports: unresolved,
+        mainFile: mainFileName,
+      };
+    },
+    []
+  );
 
-      // Save to localStorage
-      localStorage.setItem('lastProtoFile', text);
-      localStorage.setItem('lastFileName', file.name);
-    } catch (error) {
-      setState({
-        root: null,
-        availableMessages: [],
-        selectedMessage: null,
-        error: error instanceof Error ? error.message : 'Failed to parse .proto file',
-      });
-    }
-  }, []);
+  const loadProtoFile = useCallback(
+    async (file: File, importPath?: string) => {
+      try {
+        const text = await file.text();
+        const fileName = importPath || file.name;
+
+        // Создаем новый набор загруженных файлов
+        const newLoadedFiles = new Map(state.loadedFiles);
+        newLoadedFiles.set(fileName, text);
+
+        // Определяем главный файл
+        const mainFileName = state.mainFile || fileName;
+
+        // Используем общую функцию парсинга
+        const newState = await parseFiles(newLoadedFiles, mainFileName, state.selectedMessage);
+
+        setState(newState);
+
+        // Сохраняем в localStorage
+        localStorage.setItem(
+          'protoFiles',
+          JSON.stringify(Array.from(newLoadedFiles.entries()))
+        );
+        localStorage.setItem('mainFile', mainFileName);
+      } catch (error) {
+        setState((prev) => ({
+          ...prev,
+          error: error instanceof Error ? error.message : 'Failed to parse .proto file',
+        }));
+      }
+    },
+    [state.loadedFiles, state.mainFile, state.selectedMessage, parseFiles]
+  );
 
   const loadProtoFromText = useCallback(async (text: string) => {
     try {
@@ -105,16 +250,20 @@ export const useProtobuf = () => {
         availableMessages: messages,
         selectedMessage: messages.length > 0 ? messages[0] : null,
         error: null,
+        loadedFiles: new Map([['text-input.proto', text]]),
+        unresolvedImports: [],
+        mainFile: 'text-input.proto',
       });
 
       localStorage.setItem('lastProtoFile', text);
     } catch (error) {
-      setState({
+      setState((prev) => ({
+        ...prev,
         root: null,
         availableMessages: [],
         selectedMessage: null,
         error: error instanceof Error ? error.message : 'Failed to parse .proto text',
-      });
+      }));
     }
   }, []);
 
@@ -175,17 +324,38 @@ export const useProtobuf = () => {
       availableMessages: [],
       selectedMessage: null,
       error: null,
+      loadedFiles: new Map(),
+      unresolvedImports: [],
+      mainFile: null,
     });
+    localStorage.removeItem('protoFiles');
+    localStorage.removeItem('mainFile');
     localStorage.removeItem('lastProtoFile');
     localStorage.removeItem('lastFileName');
   }, []);
 
-  const loadFromLocalStorage = useCallback(() => {
-    const savedProto = localStorage.getItem('lastProtoFile');
-    if (savedProto) {
-      loadProtoFromText(savedProto);
+  const loadFromLocalStorage = useCallback(async () => {
+    const savedFiles = localStorage.getItem('protoFiles');
+    const savedMainFile = localStorage.getItem('mainFile');
+
+    if (savedFiles) {
+      try {
+        const filesArray = JSON.parse(savedFiles) as [string, string][];
+        const filesMap = new Map(filesArray);
+
+        // Используем общую функцию парсинга
+        const newState = await parseFiles(filesMap, savedMainFile, null);
+        setState(newState);
+      } catch (error) {
+        console.error('Failed to restore proto files:', error);
+        // Fallback to old format
+        const savedProto = localStorage.getItem('lastProtoFile');
+        if (savedProto) {
+          loadProtoFromText(savedProto);
+        }
+      }
     }
-  }, [loadProtoFromText]);
+  }, [parseFiles, loadProtoFromText]);
 
   return {
     ...state,
