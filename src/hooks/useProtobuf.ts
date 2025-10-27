@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
-import { parse, Type, Field, common, Root } from 'protobufjs';
+import { parse, Type, Field, Root } from 'protobufjs';
 import type { ProtoState, ValidationResult, JsonSchema } from '../types/proto';
+import { generateFullProtoDefinition } from '../utils/generateProtoDefinition';
+import { normalizeEnumValues } from '../utils/normalizeEnumValues';
 
 export const newRoot = (): Promise<Root> => {
   return new Root().load([
@@ -283,7 +285,12 @@ export const useProtobuf = () => {
       try {
         const type = state.root.lookupType(state.selectedMessage);
         const obj = JSON.parse(jsonText);
-        const error = type.verify(obj);
+
+        // Convert enum string values to numbers for validation
+        // protobufjs verify() expects numeric enum values
+        const normalizedObj = normalizeEnumValues(obj, type);
+
+        const error = type.verify(normalizedObj);
 
         if (error) {
           return { valid: false, error };
@@ -309,7 +316,9 @@ export const useProtobuf = () => {
 
       try {
         const type = state.root.lookupType(targetMessage);
-        return convertTypeToJsonSchema(type);
+        // Track visited types to prevent infinite recursion
+        const visitedTypes = new Set<string>();
+        return convertTypeToJsonSchema(type, undefined, visitedTypes);
       } catch (error) {
         console.error('Failed to generate JSON schema:', error);
         return null;
@@ -357,6 +366,24 @@ export const useProtobuf = () => {
     }
   }, [parseFiles, loadProtoFromText]);
 
+  const getMessageDefinition = useCallback(
+    (messageName?: string): string | null => {
+      if (!state.root) return null;
+
+      const targetMessage = messageName || state.selectedMessage;
+      if (!targetMessage) return null;
+
+      try {
+        const type = state.root.lookupType(targetMessage);
+        return generateFullProtoDefinition(type, true);
+      } catch (error) {
+        console.error('Failed to generate proto definition:', error);
+        return null;
+      }
+    },
+    [state.root, state.selectedMessage]
+  );
+
   return {
     ...state,
     loadProtoFile,
@@ -364,27 +391,82 @@ export const useProtobuf = () => {
     selectMessage,
     validateJson,
     generateJsonSchema,
+    getMessageDefinition,
     clearProto,
     loadFromLocalStorage,
   };
 };
 
 // Helper function to convert protobuf Type to JSON Schema
-function convertTypeToJsonSchema(type: Type, root?: any): JsonSchema {
+function convertTypeToJsonSchema(type: Type, root?: any, visitedTypes?: Set<string>): JsonSchema {
+  // Initialize visitedTypes if not provided (for backward compatibility)
+  if (!visitedTypes) {
+    visitedTypes = new Set<string>();
+  }
+
+  // Get a unique identifier for this type
+  const typeId = (type as any).fullName || type.name;
+
+  // Check for circular reference
+  if (visitedTypes.has(typeId)) {
+    // Return a simple reference schema to break the cycle
+    return {
+      type: 'object',
+      description: `Circular reference to ${typeId}`,
+    };
+  }
+
+  // Mark this type as visited
+  visitedTypes.add(typeId);
+
   const schema: JsonSchema = {
     type: 'object',
     properties: {},
     required: [],
   };
 
-  Object.values(type.fields).forEach((field: Field) => {
-    const fieldSchema = convertFieldToJsonSchema(field, type.parent || root);
-    if (schema.properties) {
-      schema.properties[field.name] = fieldSchema;
-    }
+  // Track which fields are part of oneof groups
+  const oneofFields = new Set<string>();
 
-    if (field.required && schema.required) {
-      schema.required.push(field.name);
+  // Process oneof groups - they need special handling in JSON Schema
+  if (type.oneofsArray && type.oneofsArray.length > 0) {
+    type.oneofsArray.forEach((oneof) => {
+      // Mark all fields in this oneof group
+      oneof.fieldsArray.forEach((field) => {
+        oneofFields.add(field.name);
+      });
+
+      // For each field in the oneof, add it to properties with a special description
+      oneof.fieldsArray.forEach((field) => {
+        const fieldSchema = convertFieldToJsonSchema(field, type.parent || root, visitedTypes);
+
+        // Add description indicating this is part of a oneof group
+        const oneofDescription = `[oneof ${oneof.name}] Only one field from this group can be set`;
+        if (fieldSchema.description) {
+          fieldSchema.description = `${oneofDescription}. ${fieldSchema.description}`;
+        } else {
+          fieldSchema.description = oneofDescription;
+        }
+
+        if (schema.properties) {
+          schema.properties[field.name] = fieldSchema;
+        }
+      });
+    });
+  }
+
+  // Process regular fields (excluding oneof fields - they're already processed)
+  Object.values(type.fields).forEach((field: Field) => {
+    // Skip fields that are part of oneof groups (already processed above)
+    if (!oneofFields.has(field.name)) {
+      const fieldSchema = convertFieldToJsonSchema(field, type.parent || root, visitedTypes);
+      if (schema.properties) {
+        schema.properties[field.name] = fieldSchema;
+      }
+
+      if (field.required && schema.required) {
+        schema.required.push(field.name);
+      }
     }
   });
 
@@ -392,23 +474,26 @@ function convertTypeToJsonSchema(type: Type, root?: any): JsonSchema {
     delete schema.required;
   }
 
+  // Remove from visited after processing (allow same type in different branches)
+  visitedTypes.delete(typeId);
+
   return schema;
 }
 
-function convertFieldToJsonSchema(field: Field, root?: any): JsonSchema {
+function convertFieldToJsonSchema(field: Field, root?: any, visitedTypes?: Set<string>): JsonSchema {
   // Handle repeated fields
   if (field.repeated) {
     return {
       type: 'array',
-      items: convertFieldTypeToJsonSchema(field, root),
+      items: convertFieldTypeToJsonSchema(field, root, visitedTypes),
       description: `Repeated field: ${field.type}`,
     };
   }
 
-  return convertFieldTypeToJsonSchema(field, root);
+  return convertFieldTypeToJsonSchema(field, root, visitedTypes);
 }
 
-function convertFieldTypeToJsonSchema(field: Field, root?: any): JsonSchema {
+function convertFieldTypeToJsonSchema(field: Field, root?: any, visitedTypes?: Set<string>): JsonSchema {
   const protoType = field.type;
 
   // Map protobuf types to JSON schema types
@@ -444,11 +529,26 @@ function convertFieldTypeToJsonSchema(field: Field, root?: any): JsonSchema {
 
     // Check if it's an Enum
     if ((resolvedType as any).values !== undefined) {
-      const enumValues = Object.keys((resolvedType as any).values);
+      const enumObj = (resolvedType as any).values;
+      const enumNames = Object.keys(enumObj);
+      const enumNumbers = Object.values(enumObj);
+
+      // Protobuf JSON allows both string names and numeric values for enums
+      // Create a schema that accepts either
       return {
-        type: 'string',
-        enum: enumValues,
-        description: `Enum: ${protoType}`,
+        oneOf: [
+          {
+            type: 'integer',
+            enum: enumNumbers,
+            description: `Enum numeric value: ${protoType}`,
+          },
+          {
+            type: 'string',
+            enum: enumNames,
+            description: `Enum string value: ${protoType}`,
+          },
+        ],
+        description: `Enum: ${protoType} (accepts both string names and numeric values)`,
       };
     }
 
@@ -485,7 +585,7 @@ function convertFieldTypeToJsonSchema(field: Field, root?: any): JsonSchema {
 
     // It's a nested message type - recursively convert it
     if (resolvedType instanceof Type) {
-      return convertTypeToJsonSchema(resolvedType, root);
+      return convertTypeToJsonSchema(resolvedType, root, visitedTypes);
     }
   }
 

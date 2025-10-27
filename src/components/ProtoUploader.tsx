@@ -42,7 +42,7 @@ export const ProtoUploader = ({ onFileSelect, onClear, hasFile, fileName }: Prot
   };
 
   return (
-    <div className="flex gap-3 items-center">
+    <div>
       <input
         ref={fileInputRef}
         type="file"
@@ -56,34 +56,34 @@ export const ProtoUploader = ({ onFileSelect, onClear, hasFile, fileName }: Prot
           onClick={handleClick}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
-          className="flex-1 border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-all duration-200 group"
+          className="border border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 transition-all duration-200 group"
         >
           <div className="flex flex-col items-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-blue-100 transition-colors">
-              <Upload className="text-gray-400 group-hover:text-blue-500 transition-colors" size={28} />
+            <div className="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center mb-2 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 transition-colors">
+              <Upload className="text-gray-400 dark:text-gray-500 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors" size={18} />
             </div>
-            <p className="text-sm text-gray-700 mb-1">
-              <span className="font-semibold text-blue-600">Click to upload</span> or drag and drop
+            <p className="text-sm text-gray-700 dark:text-gray-300 mb-1">
+              <span className="font-semibold text-blue-600 dark:text-blue-400">Upload</span> .proto
             </p>
-            <p className="text-xs text-gray-500">.proto files only</p>
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex items-center gap-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200/60 rounded-xl p-5 shadow-sm">
-          <div className="flex items-center justify-center w-10 h-10 bg-green-100 rounded-lg">
-            <FileCode2 className="text-green-600" size={20} />
+        <div className="flex flex-col gap-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-2">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center w-6 h-6 bg-green-100 dark:bg-green-900/40 rounded">
+              <FileCode2 className="text-green-600 dark:text-green-400" size={14} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{fileName || 'Schema'}</p>
+            </div>
+            <button
+              onClick={onClear}
+              className="p-1 hover:bg-red-100 dark:hover:bg-red-900/50 rounded transition-colors text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400"
+              title="Clear"
+            >
+              <X size={14} />
+            </button>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-900 truncate">{fileName || 'Schema loaded'}</p>
-            <p className="text-xs text-green-600 mt-0.5">Ready to use</p>
-          </div>
-          <button
-            onClick={onClear}
-            className="p-2 hover:bg-red-100 rounded-lg transition-colors text-gray-400 hover:text-red-600"
-            title="Clear schema"
-          >
-            <X size={18} />
-          </button>
         </div>
       )}
     </div>

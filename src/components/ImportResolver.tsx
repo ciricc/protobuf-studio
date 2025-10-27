@@ -24,10 +24,10 @@ export const ImportResolver: React.FC<ImportResolverProps> = ({
   const resolvedCount = resolvedImports.size;
 
   return (
-    <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-4 mb-4">
-      <div className="flex items-start gap-2">
+    <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-2">
+      <div className="flex items-start gap-1.5">
         <svg
-          className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0"
+          className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0"
           fill="currentColor"
           viewBox="0 0 20 20"
         >
@@ -37,18 +37,19 @@ export const ImportResolver: React.FC<ImportResolverProps> = ({
             clipRule="evenodd"
           />
         </svg>
-        <div className="flex-1">
-          <div className="flex items-center justify-between mb-1">
-            <h3 className="text-lg font-semibold text-yellow-900">
-              Обнаружены неразрешенные импорты ({resolvedCount}/{unresolvedCount} загружено)
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+              Unresolved imports ({resolvedCount}/{unresolvedCount})
             </h3>
+
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className="text-yellow-800 hover:text-yellow-900 transition-colors p-1"
-              title={isCollapsed ? 'Развернуть' : 'Свернуть'}
+              className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors p-0.5"
+              title={isCollapsed ? 'Expand' : 'Collapse'}
             >
               <svg
-                className={`w-5 h-5 transition-transform ${isCollapsed ? 'rotate-180' : ''}`}
+                className={`w-3.5 h-3.5 transition-transform ${isCollapsed ? 'rotate-180' : ''}`}
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >
@@ -60,41 +61,37 @@ export const ImportResolver: React.FC<ImportResolverProps> = ({
               </svg>
             </button>
           </div>
-          {!isCollapsed && (
-            <p className="text-sm text-yellow-800">
-              Пожалуйста, загрузите недостающие .proto файлы для корректной работы:
-            </p>
-          )}
         </div>
       </div>
 
       {!isCollapsed && (
         <>
-          <div className="space-y-3 my-4">
+          <div className="space-y-2 mt-2">
             {unresolvedImports.map((importPath) => (
               <div
                 key={importPath}
-                className="flex items-center gap-3 bg-white p-3 rounded border border-yellow-200"
+                className={`rounded ${resolvedImports.has(importPath)
+                  ? 'bg-green-50 dark:bg-green-900/20 border border-green-300 dark:border-green-800'
+                  : 'border-2 border-dashed border-yellow-400 dark:border-yellow-600 bg-yellow-50/30 dark:bg-yellow-900/20'
+                  }`}
               >
-                <div className="flex-1">
-                  <code className="text-sm font-mono text-gray-800 break-all">
-                    {importPath}
-                  </code>
-                </div>
-
                 {resolvedImports.has(importPath) ? (
-                  <div className="flex items-center gap-1 text-green-600 text-sm font-medium">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <div className="p-2 flex items-start gap-1.5">
+                    <svg className="w-3.5 h-3.5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                       <path
                         fillRule="evenodd"
                         d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
                         clipRule="evenodd"
                       />
                     </svg>
-                    Загружен
+                    <div className="flex-1 min-w-0">
+                      <code className="text-xs font-mono text-green-800 dark:text-green-300 break-all">
+                        {importPath}
+                      </code>
+                    </div>
                   </div>
                 ) : (
-                  <label className="cursor-pointer">
+                  <label className="cursor-pointer block p-2 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 hover:border-blue-400 dark:hover:border-blue-500 transition-all rounded">
                     <input
                       type="file"
                       accept=".proto"
@@ -110,13 +107,9 @@ export const ImportResolver: React.FC<ImportResolverProps> = ({
                         }
                       }}
                     />
-                    <span className="inline-flex items-center gap-1 bg-blue-500 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-600 transition-colors">
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M5.5 13a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 13H11V9.413l1.293 1.293a1 1 0 001.414-1.414l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13H5.5z" />
-                        <path d="M9 13h2v5a1 1 0 11-2 0v-5z" />
-                      </svg>
-                      Выбрать файл
-                    </span>
+                    <code className="text-xs font-mono text-gray-700 dark:text-gray-300 break-all hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                      {importPath}
+                    </code>
                   </label>
                 )}
               </div>
