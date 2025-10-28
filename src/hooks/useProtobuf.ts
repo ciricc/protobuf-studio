@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { parse, Type, Field, Root } from 'protobufjs';
-import type { ProtoState, ValidationResult, JsonSchema } from '../types/proto';
+import type { ProtoState, ValidationResult, JsonSchema, MessageContext } from '../types/proto';
 import { generateFullProtoDefinition } from '../utils/generateProtoDefinition';
 import { normalizeEnumValues } from '../utils/normalizeEnumValues';
 
@@ -94,6 +94,54 @@ function normalizeImportPath(origin: string, target: string): string {
   return target;
 }
 
+// Helper function to extract message context (package, file)
+function extractMessageContext(root: Root, messageName: string, loadedFiles: Map<string, string>): MessageContext | null {
+  if (!messageName) return null;
+
+  try {
+    const type = root.lookupType(messageName);
+
+    // Get package name from the namespace hierarchy
+    let packageName: string | null = null;
+    let parent = type.parent;
+    const packageParts: string[] = [];
+
+    while (parent && parent !== root) {
+      if (parent.name) {
+        packageParts.unshift(parent.name);
+      }
+      parent = parent.parent;
+    }
+
+    if (packageParts.length > 0) {
+      packageName = packageParts.join('.');
+    }
+
+    // Try to find which file contains this message
+    // We look for the message definition in loaded files
+    let fileName: string | null = null;
+    const messageShortName = messageName.split('.').pop() || messageName;
+
+    for (const [filePath, content] of loadedFiles.entries()) {
+      // Check if this file contains the message definition
+      const messageRegex = new RegExp(`^\\s*message\\s+${messageShortName}\\s*\\{`, 'm');
+      if (messageRegex.test(content)) {
+        fileName = filePath;
+        break;
+      }
+    }
+
+    return {
+      messageName,
+      fileName,
+      packageName,
+    };
+  } catch (error) {
+    console.error('Failed to extract message context:', error);
+    return null;
+  }
+}
+
 export const useProtobuf = () => {
   const [state, setState] = useState<ProtoState>({
     root: null,
@@ -103,6 +151,7 @@ export const useProtobuf = () => {
     loadedFiles: new Map<string, string>(),
     unresolvedImports: [],
     mainFile: null,
+    messageContext: null,
   });
 
   // Общая функция для парсинга файлов
@@ -173,14 +222,21 @@ export const useProtobuf = () => {
       // Обнаруживаем неразрешенные импорты
       const unresolved = detectUnresolvedImports(filesMap, new Set(filesMap.keys()));
 
+      // Determine selected message
+      const selectedMsg = currentSelectedMessage || (messages.length > 0 ? messages[0] : null);
+
+      // Extract message context
+      const messageCtx = selectedMsg ? extractMessageContext(root, selectedMsg, filesMap) : null;
+
       return {
         root,
         availableMessages: messages,
-        selectedMessage: currentSelectedMessage || (messages.length > 0 ? messages[0] : null),
+        selectedMessage: selectedMsg,
         error: null,
         loadedFiles: filesMap,
         unresolvedImports: unresolved,
         mainFile: mainFileName,
+        messageContext: messageCtx,
       };
     },
     []
@@ -248,14 +304,19 @@ export const useProtobuf = () => {
 
       extractMessages(root);
 
+      const selectedMsg = messages.length > 0 ? messages[0] : null;
+      const filesMap = new Map([['text-input.proto', text]]);
+      const messageCtx = selectedMsg ? extractMessageContext(root, selectedMsg, filesMap) : null;
+
       setState({
         root,
         availableMessages: messages,
-        selectedMessage: messages.length > 0 ? messages[0] : null,
+        selectedMessage: selectedMsg,
         error: null,
-        loadedFiles: new Map([['text-input.proto', text]]),
+        loadedFiles: filesMap,
         unresolvedImports: [],
         mainFile: 'text-input.proto',
+        messageContext: messageCtx,
       });
 
       localStorage.setItem('lastProtoFile', text);
@@ -271,10 +332,17 @@ export const useProtobuf = () => {
   }, []);
 
   const selectMessage = useCallback((messageName: string) => {
-    setState((prev) => ({
-      ...prev,
-      selectedMessage: messageName,
-    }));
+    setState((prev) => {
+      const messageCtx = prev.root && messageName
+        ? extractMessageContext(prev.root, messageName, prev.loadedFiles)
+        : null;
+
+      return {
+        ...prev,
+        selectedMessage: messageName,
+        messageContext: messageCtx,
+      };
+    });
   }, []);
 
   const validateJson = useCallback(
@@ -337,6 +405,7 @@ export const useProtobuf = () => {
       loadedFiles: new Map(),
       unresolvedImports: [],
       mainFile: null,
+      messageContext: null,
     });
     localStorage.removeItem('protoFiles');
     localStorage.removeItem('mainFile');
@@ -402,6 +471,7 @@ export const useProtobuf = () => {
             loadedFiles: new Map(),
             unresolvedImports: [],
             mainFile: null,
+            messageContext: null,
           });
           localStorage.removeItem('protoFiles');
           localStorage.removeItem('mainFile');

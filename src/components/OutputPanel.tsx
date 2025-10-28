@@ -26,18 +26,49 @@ export const OutputPanel = ({ onConvert, disabled, messageDefinition, messageNam
   const [isLanguageRegistered, setIsLanguageRegistered] = useState(false);
   const { theme } = useTheme();
 
+  const formats: { value: OutputFormat; label: string }[] = [
+    { value: 'base64', label: 'Base64' },
+    { value: 'hex', label: 'Hex' },
+    { value: 'textproto', label: 'ProtoText' },
+  ];
+
   // Reset conversion result when message type changes
   useEffect(() => {
     setResult(null);
     setCopied(false);
   }, [messageName]);
 
-  const formats: { value: OutputFormat; label: string }[] = [
-    { value: 'base64', label: 'Base64' },
-    { value: 'hex', label: 'Hex' },
-    { value: 'json', label: 'JSON' },
-    { value: 'textproto', label: 'ProtoText' },
-  ];
+  const handleConvert = () => {
+    const conversionResult = onConvert(selectedFormat);
+    setResult(conversionResult);
+    setCopied(false);
+  };
+
+  // Listen for global conversion trigger and format changes
+  useEffect(() => {
+    const handleGlobalConversion = () => {
+      if (!disabled) {
+        handleConvert();
+      }
+    };
+
+    const handleSetFormat = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const format = customEvent.detail as OutputFormat;
+      if (formats.some((f) => f.value === format)) {
+        setSelectedFormat(format);
+        setResult(null);
+      }
+    };
+
+    window.addEventListener('triggerConversion', handleGlobalConversion);
+    window.addEventListener('setFormat', handleSetFormat as EventListener);
+
+    return () => {
+      window.removeEventListener('triggerConversion', handleGlobalConversion);
+      window.removeEventListener('setFormat', handleSetFormat as EventListener);
+    };
+  }, [disabled, selectedFormat, onConvert]);
 
   const handleEditorWillMount = (monaco: Monaco) => {
     // Register custom dark theme
@@ -81,16 +112,8 @@ export const OutputPanel = ({ onConvert, disabled, messageDefinition, messageNam
     }
   }, [theme]);
 
-  const handleConvert = () => {
-    const conversionResult = onConvert(selectedFormat);
-    setResult(conversionResult);
-    setCopied(false);
-  };
-
   const getLanguageForFormat = (): string => {
     switch (selectedFormat) {
-      case 'json':
-        return 'json';
       case 'textproto':
         return 'prototext';
       default:
@@ -99,7 +122,7 @@ export const OutputPanel = ({ onConvert, disabled, messageDefinition, messageNam
   };
 
   const shouldUseMonaco = (): boolean => {
-    return selectedFormat === 'json' || selectedFormat === 'textproto';
+    return selectedFormat === 'textproto';
   };
 
   const getOutputValue = (): string => {
@@ -111,8 +134,6 @@ export const OutputPanel = ({ onConvert, disabled, messageDefinition, messageNam
         return result.base64 || '';
       case 'hex':
         return result.hex || '';
-      case 'json':
-        return result.json || '';
       case 'textproto':
         return result.textproto || '';
       default:
@@ -147,10 +168,6 @@ export const OutputPanel = ({ onConvert, disabled, messageDefinition, messageNam
       case 'hex':
         blob = new Blob([result.hex || ''], { type: 'text/plain' });
         filename = 'output.hex.txt';
-        break;
-      case 'json':
-        blob = new Blob([result.json || ''], { type: 'application/json' });
-        filename = 'output.json';
         break;
       case 'textproto':
         blob = new Blob([result.textproto || ''], { type: 'text/plain' });
@@ -205,7 +222,7 @@ export const OutputPanel = ({ onConvert, disabled, messageDefinition, messageNam
               <label className="block text-sm font-semibold text-gray-700 dark:text-neutral-300 mb-2">
                 Output Format
               </label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {formats.map((format) => (
                   <label
                     key={format.value}
@@ -249,7 +266,7 @@ export const OutputPanel = ({ onConvert, disabled, messageDefinition, messageNam
                 <button
                   onClick={handleConvert}
                   disabled={disabled}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 dark:bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-all font-semibold text-sm shadow-sm"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-500 dark:bg-blue-500/80 text-white rounded-lg hover:bg-blue-600 dark:hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-all font-medium text-sm"
                 >
                   <Play size={16} />
                   Convert

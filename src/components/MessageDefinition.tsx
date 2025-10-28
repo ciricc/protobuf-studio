@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Copy, FileText } from 'lucide-react';
+import { Copy } from 'lucide-react';
 import Editor, { type Monaco } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { protobufLanguageConfiguration, protobufMonarchLanguage } from '../utils/protobufLanguage';
@@ -11,7 +11,7 @@ interface MessageDefinitionProps {
   messageName: string | null;
 }
 
-export const MessageDefinition = ({ definition, messageName }: MessageDefinitionProps) => {
+export const MessageDefinition = ({ definition }: MessageDefinitionProps) => {
   const [copied, setCopied] = useState(false);
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const [isLanguageRegistered, setIsLanguageRegistered] = useState(false);
@@ -70,49 +70,24 @@ export const MessageDefinition = ({ definition, messageName }: MessageDefinition
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="p-4 space-y-4 border-b border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800">
-        {/* Schema Info Section */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-neutral-300 mb-2">
-            Message Definition
-          </label>
-          <div className="flex items-center gap-2">
-            <FileText size={16} className="text-blue-600 dark:text-blue-400" />
-            {messageName ? (
-              <span className="text-sm text-gray-700 dark:text-neutral-300 font-mono bg-white dark:bg-neutral-900 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-neutral-700">
-                {messageName}
-              </span>
-            ) : (
-              <span className="text-sm text-gray-500 dark:text-neutral-400 italic">
-                No message selected
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Actions Section */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-neutral-300 mb-2">
-            Actions
-          </label>
-          <div className="flex gap-2">
-            <button
-              onClick={handleCopy}
-              disabled={!definition}
-              className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white dark:bg-neutral-800 border border-gray-300 dark:border-neutral-600 text-gray-700 dark:text-neutral-300 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-700 disabled:bg-gray-50 dark:disabled:bg-neutral-800 disabled:text-gray-400 dark:disabled:text-neutral-600 disabled:cursor-not-allowed transition-all text-sm font-medium"
-              title="Copy definition to clipboard"
-            >
-              <Copy size={16} />
-              {copied ? 'Copied!' : 'Copy'}
-            </button>
-          </div>
-        </div>
+      {/* Header with title and copy button */}
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 h-[45px]">
+        <label className="text-sm font-semibold text-gray-700 dark:text-neutral-300">
+          Message Definition
+        </label>
+        <button
+          onClick={handleCopy}
+          disabled={!definition}
+          className="flex items-center justify-center gap-1.5 p-2 text-gray-600 dark:text-neutral-400 hover:bg-gray-200 dark:hover:bg-neutral-700 rounded disabled:text-gray-400 dark:disabled:text-neutral-600 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors"
+          title="Copy definition to clipboard"
+        >
+          <Copy size={16} />
+          {copied && <span className="text-xs">{copied ? 'Copied!' : ''}</span>}
+        </button>
       </div>
 
+      {/* Editor area */}
       <div className="flex-1 flex flex-col overflow-hidden p-3">
-        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-          Schema
-        </label>
         <div className="flex-1 border rounded overflow-hidden bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700">
           {definition ? (
             <Editor

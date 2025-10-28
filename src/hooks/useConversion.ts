@@ -44,9 +44,6 @@ export const useConversion = (root: Root | null, selectedMessage: string | null)
           case 'hex':
             return { hex: uint8ArrayToHex(buffer) };
 
-          case 'json':
-            return { json: JSON.stringify(obj, null, 2) };
-
           case 'textproto':
             return { textproto: messageToProtoText(message, type, 0) };
 
@@ -73,68 +70,15 @@ export const useConversion = (root: Root | null, selectedMessage: string | null)
         binary: convert(jsonText, 'binary'),
         base64: convert(jsonText, 'base64'),
         hex: convert(jsonText, 'hex'),
-        json: convert(jsonText, 'json'),
         textproto: convert(jsonText, 'textproto'),
       };
     },
     [convert]
   );
 
-  const decodeFromBinary = useCallback(
-    (buffer: Uint8Array): ConversionResult => {
-      if (!root || !selectedMessage) {
-        return { error: 'No message type selected' };
-      }
-
-      try {
-        const type = root.lookupType(selectedMessage);
-        const message = type.decode(buffer);
-        const obj = type.toObject(message);
-
-        return { json: JSON.stringify(obj, null, 2) };
-      } catch (error) {
-        return {
-          error: error instanceof Error ? error.message : 'Decoding failed',
-        };
-      }
-    },
-    [root, selectedMessage]
-  );
-
-  const decodeFromBase64 = useCallback(
-    (base64: string): ConversionResult => {
-      try {
-        const buffer = base64ToUint8Array(base64);
-        return decodeFromBinary(buffer);
-      } catch (error) {
-        return {
-          error: error instanceof Error ? error.message : 'Base64 decoding failed',
-        };
-      }
-    },
-    [decodeFromBinary]
-  );
-
-  const decodeFromHex = useCallback(
-    (hex: string): ConversionResult => {
-      try {
-        const buffer = hexToUint8Array(hex);
-        return decodeFromBinary(buffer);
-      } catch (error) {
-        return {
-          error: error instanceof Error ? error.message : 'Hex decoding failed',
-        };
-      }
-    },
-    [decodeFromBinary]
-  );
-
   return {
     convert,
     convertAll,
-    decodeFromBinary,
-    decodeFromBase64,
-    decodeFromHex,
   };
 };
 
@@ -152,30 +96,6 @@ function uint8ArrayToHex(buffer: Uint8Array): string {
   return Array.from(buffer)
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
-}
-
-function base64ToUint8Array(base64: string): Uint8Array {
-  const binary = atob(base64);
-  const buffer = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    buffer[i] = binary.charCodeAt(i);
-  }
-  return buffer;
-}
-
-function hexToUint8Array(hex: string): Uint8Array {
-  // Remove any spaces or non-hex characters
-  const cleanHex = hex.replace(/[^0-9a-fA-F]/g, '');
-
-  if (cleanHex.length % 2 !== 0) {
-    throw new Error('Invalid hex string length');
-  }
-
-  const buffer = new Uint8Array(cleanHex.length / 2);
-  for (let i = 0; i < cleanHex.length; i += 2) {
-    buffer[i / 2] = parseInt(cleanHex.substring(i, i + 2), 16);
-  }
-  return buffer;
 }
 
 // Convert protobuf message to ProtoText format (canonical text format)

@@ -1,5 +1,11 @@
 import type { Root } from 'protobufjs';
 
+export interface MessageContext {
+  messageName: string;
+  fileName: string | null;
+  packageName: string | null;
+}
+
 export interface ProtoState {
   root: Root | null;
   availableMessages: string[];
@@ -8,6 +14,7 @@ export interface ProtoState {
   loadedFiles: Map<string, string>; // путь файла → содержимое
   unresolvedImports: string[]; // список недостающих импортов
   mainFile: string | null; // имя главного файла
+  messageContext: MessageContext | null; // контекст выбранного сообщения
 }
 
 export interface ValidationResult {
@@ -19,12 +26,11 @@ export interface ConversionResult {
   binary?: Uint8Array;
   base64?: string;
   hex?: string;
-  json?: string;
   textproto?: string;
   error?: string;
 }
 
-export type OutputFormat = 'binary' | 'base64' | 'hex' | 'json' | 'textproto';
+export type OutputFormat = 'binary' | 'base64' | 'hex' | 'textproto';
 
 export interface JsonSchema {
   type?: string | string[];

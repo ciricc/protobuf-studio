@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import Editor, { type OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
-import type { JsonSchema } from '../types/proto';
+import type { JsonSchema, MessageContext } from '../types/proto';
 import { useTheme } from '../contexts/ThemeContext';
 import { registerCustomTheme } from '../utils/monacoTheme';
 
@@ -10,6 +10,7 @@ interface JsonEditorProps {
   onChange: (value: string) => void;
   schema?: JsonSchema | null;
   error?: string | null;
+  messageContext?: MessageContext | null;
 }
 
 // Helper function to get type string from schema property
@@ -81,7 +82,7 @@ const getPropertiesFromPath = (schema: JsonSchema, path: string[]): any => {
   return current.properties || null;
 };
 
-export const JsonEditor = ({ value, onChange, schema, error }: JsonEditorProps) => {
+export const JsonEditor = ({ value, onChange, schema, error, messageContext }: JsonEditorProps) => {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const { theme } = useTheme();
   const completionProviderRef = useRef<any>(null);
@@ -94,6 +95,26 @@ export const JsonEditor = ({ value, onChange, schema, error }: JsonEditorProps) 
 
     // Set initial theme based on current app theme
     monaco.editor.setTheme(theme === 'dark' ? 'gruvbox-dark-hard' : 'vs');
+
+    // Add Cmd+Enter keyboard shortcut for conversion
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
+      window.dispatchEvent(new CustomEvent('triggerConversion'));
+    });
+
+    // Add Alt+1 for Base64 format
+    editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.Digit1, () => {
+      window.dispatchEvent(new CustomEvent('setFormat', { detail: 'base64' }));
+    });
+
+    // Add Alt+2 for Hex format
+    editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.Digit2, () => {
+      window.dispatchEvent(new CustomEvent('setFormat', { detail: 'hex' }));
+    });
+
+    // Add Alt+3 for ProtoText format
+    editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.Digit3, () => {
+      window.dispatchEvent(new CustomEvent('setFormat', { detail: 'textproto' }));
+    });
 
     // Configure JSON language settings with better completion support
     monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
@@ -235,9 +256,31 @@ export const JsonEditor = ({ value, onChange, schema, error }: JsonEditorProps) 
   return (
     <div className="flex flex-col h-full relative">
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800 h-[45px]">
-        <label className="text-sm font-semibold text-gray-700 dark:text-neutral-300">JSON Editor</label>
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          {messageContext ? (
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-sm font-semibold text-gray-700 dark:text-neutral-300 flex-shrink-0">
+                {messageContext.messageName.split('.').pop()}
+              </span>
+              <span className="text-xs text-gray-400 dark:text-neutral-500 flex-shrink-0">in</span>
+              <span className="text-xs text-gray-500 dark:text-neutral-400 truncate">
+                {messageContext.fileName || 'unknown'}
+              </span>
+              {messageContext.packageName && (
+                <>
+                  <span className="text-xs text-gray-400 dark:text-neutral-500 flex-shrink-0">/</span>
+                  <span className="text-xs text-gray-500 dark:text-neutral-400 truncate">
+                    {messageContext.packageName}
+                  </span>
+                </>
+              )}
+            </div>
+          ) : (
+            <label className="text-sm font-semibold text-gray-700 dark:text-neutral-300">JSON Editor</label>
+          )}
+        </div>
         {error && (
-          <span className="text-xs text-red-600 dark:text-red-400 font-semibold px-2 py-1 bg-red-50 dark:bg-red-900/30 rounded">
+          <span className="text-xs text-red-600 dark:text-red-400 font-semibold px-2 py-1 bg-red-50 dark:bg-red-900/30 rounded flex-shrink-0">
             Validation Error
           </span>
         )}

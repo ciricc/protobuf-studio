@@ -28,6 +28,7 @@ function App() {
     unresolvedImports,
     loadedFiles,
     mainFile,
+    messageContext,
     loadProtoFile,
     selectMessage,
     validateJson,
@@ -130,6 +131,40 @@ function App() {
     return convert(jsonValue, format);
   };
 
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Cmd+Enter to trigger conversion
+      if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+        event.preventDefault();
+        if (root && selectedMessage && !validationError) {
+          window.dispatchEvent(new CustomEvent('triggerConversion'));
+        }
+      }
+
+      // Alt+1 for Base64 format (checking both key and code for cross-platform support)
+      if (event.altKey && (event.key === '1' || event.code === 'Digit1')) {
+        event.preventDefault();
+        window.dispatchEvent(new CustomEvent('setFormat', { detail: 'base64' }));
+      }
+
+      // Alt+2 for Hex format
+      if (event.altKey && (event.key === '2' || event.code === 'Digit2')) {
+        event.preventDefault();
+        window.dispatchEvent(new CustomEvent('setFormat', { detail: 'hex' }));
+      }
+
+      // Alt+3 for ProtoText format
+      if (event.altKey && (event.key === '3' || event.code === 'Digit3')) {
+        event.preventDefault();
+        window.dispatchEvent(new CustomEvent('setFormat', { detail: 'textproto' }));
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [root, selectedMessage, validationError]);
+
   const jsonSchema = generateJsonSchema();
   const messageDefinition = getMessageDefinition();
 
@@ -181,6 +216,7 @@ function App() {
                   onChange={setJsonValue}
                   schema={jsonSchema}
                   error={validationError}
+                  messageContext={messageContext}
                 />
               </div>
 
