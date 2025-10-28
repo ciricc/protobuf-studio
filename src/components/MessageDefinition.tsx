@@ -51,7 +51,7 @@ export const MessageDefinition = ({ definition, messageName }: MessageDefinition
     if (editorRef.current) {
       const monaco = (window as any).monaco;
       if (monaco) {
-        monaco.editor.setTheme(theme === 'dark' ? 'custom-dark' : 'vs');
+        monaco.editor.setTheme(theme === 'dark' ? 'gruvbox-dark-hard' : 'vs');
       }
     }
   }, [theme]);
@@ -70,20 +70,20 @@ export const MessageDefinition = ({ definition, messageName }: MessageDefinition
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="p-4 space-y-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+      <div className="p-4 space-y-4 border-b border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800">
         {/* Schema Info Section */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+          <label className="block text-sm font-semibold text-gray-700 dark:text-neutral-300 mb-2">
             Message Definition
           </label>
           <div className="flex items-center gap-2">
             <FileText size={16} className="text-blue-600 dark:text-blue-400" />
             {messageName ? (
-              <span className="text-sm text-gray-700 dark:text-gray-300 font-mono bg-white dark:bg-gray-900 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700">
+              <span className="text-sm text-gray-700 dark:text-neutral-300 font-mono bg-white dark:bg-neutral-900 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-neutral-700">
                 {messageName}
               </span>
             ) : (
-              <span className="text-sm text-gray-500 dark:text-gray-400 italic">
+              <span className="text-sm text-gray-500 dark:text-neutral-400 italic">
                 No message selected
               </span>
             )}
@@ -92,14 +92,14 @@ export const MessageDefinition = ({ definition, messageName }: MessageDefinition
 
         {/* Actions Section */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+          <label className="block text-sm font-semibold text-gray-700 dark:text-neutral-300 mb-2">
             Actions
           </label>
           <div className="flex gap-2">
             <button
               onClick={handleCopy}
               disabled={!definition}
-              className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-600 disabled:cursor-not-allowed transition-all text-sm font-medium"
+              className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white dark:bg-neutral-800 border border-gray-300 dark:border-neutral-600 text-gray-700 dark:text-neutral-300 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-700 disabled:bg-gray-50 dark:disabled:bg-neutral-800 disabled:text-gray-400 dark:disabled:text-neutral-600 disabled:cursor-not-allowed transition-all text-sm font-medium"
               title="Copy definition to clipboard"
             >
               <Copy size={16} />
@@ -113,12 +113,12 @@ export const MessageDefinition = ({ definition, messageName }: MessageDefinition
         <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
           Schema
         </label>
-        <div className="flex-1 border rounded overflow-hidden bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+        <div className="flex-1 border rounded overflow-hidden bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700">
           {definition ? (
             <Editor
               value={definition}
               language="protobuf"
-              theme={theme === 'dark' ? 'custom-dark' : 'vs'}
+              theme={theme === 'dark' ? 'gruvbox-dark-hard' : 'vs'}
               beforeMount={handleEditorWillMount}
               onMount={handleEditorDidMount}
               options={{
@@ -146,7 +146,7 @@ export const MessageDefinition = ({ definition, messageName }: MessageDefinition
             />
           ) : (
             <div className="flex items-center justify-center h-full">
-              <p className="text-gray-400 dark:text-gray-500 italic text-center text-sm">
+              <p className="text-gray-400 dark:text-neutral-500 italic text-center text-sm">
                 Select a message to view its definition
               </p>
             </div>

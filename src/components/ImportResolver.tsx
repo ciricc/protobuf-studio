@@ -24,8 +24,12 @@ export const ImportResolver: React.FC<ImportResolverProps> = ({
   const resolvedCount = resolvedImports.size;
 
   return (
-    <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-2">
-      <div className="flex items-start gap-1.5">
+    <div className="border border-gray-300 dark:border-neutral-600 rounded-lg p-2">
+      <button
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className="flex items-start gap-1.5 w-full text-left hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors rounded px-1 py-0.5 -mx-1 -my-0.5"
+        title={isCollapsed ? 'Expand' : 'Collapse'}
+      >
         <svg
           className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0"
           fill="currentColor"
@@ -39,30 +43,24 @@ export const ImportResolver: React.FC<ImportResolverProps> = ({
         </svg>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+            <h3 className="text-xs font-semibold text-gray-700 dark:text-neutral-300">
               Unresolved imports ({resolvedCount}/{unresolvedCount})
             </h3>
 
-            <button
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors p-0.5"
-              title={isCollapsed ? 'Expand' : 'Collapse'}
+            <svg
+              className={`w-3.5 h-3.5 transition-transform text-gray-600 dark:text-neutral-400 ${isCollapsed ? 'rotate-180' : ''}`}
+              fill="currentColor"
+              viewBox="0 0 20 20"
             >
-              <svg
-                className={`w-3.5 h-3.5 transition-transform ${isCollapsed ? 'rotate-180' : ''}`}
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </button>
+              <path
+                fillRule="evenodd"
+                d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                clipRule="evenodd"
+              />
+            </svg>
           </div>
         </div>
-      </div>
+      </button>
 
       {!isCollapsed && (
         <>
@@ -107,7 +105,7 @@ export const ImportResolver: React.FC<ImportResolverProps> = ({
                         }
                       }}
                     />
-                    <code className="text-xs font-mono text-gray-700 dark:text-gray-300 break-all hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                    <code className="text-xs font-mono text-gray-700 dark:text-neutral-300 break-all hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                       {importPath}
                     </code>
                   </label>

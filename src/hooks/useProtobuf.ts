@@ -12,6 +12,7 @@ export const newRoot = (): Promise<Root> => {
     'google/protobuf/struct.proto',
     'google/protobuf/timestamp.proto',
     'google/protobuf/wrappers.proto',
+    'google/protobuf/any.proto'
   ]);
 };
 
@@ -366,6 +367,83 @@ export const useProtobuf = () => {
     }
   }, [parseFiles, loadProtoFromText]);
 
+  const removeFile = useCallback(
+    async (filePath: string) => {
+      try {
+        // Check if we need to find a new message to select
+        // by checking if any message from the removed file is currently selected
+        let needsNewSelection = false;
+        let fileBeingRemovedContent = state.loadedFiles.get(filePath);
+
+        if (state.selectedMessage && fileBeingRemovedContent) {
+          // Extract message names from the file being removed
+          const messageRegex = /^\s*message\s+(\w+)\s*\{/gm;
+          let match;
+          while ((match = messageRegex.exec(fileBeingRemovedContent)) !== null) {
+            // If selected message's short name matches any message in this file, we need new selection
+            if (state.selectedMessage.endsWith(match[1]) || state.selectedMessage === match[1]) {
+              needsNewSelection = true;
+              break;
+            }
+          }
+        }
+
+        // Create new map without the removed file
+        const newLoadedFiles = new Map(state.loadedFiles);
+        newLoadedFiles.delete(filePath);
+
+        if (newLoadedFiles.size === 0) {
+          // No files left, clear everything
+          setState({
+            root: null,
+            availableMessages: [],
+            selectedMessage: null,
+            error: null,
+            loadedFiles: new Map(),
+            unresolvedImports: [],
+            mainFile: null,
+          });
+          localStorage.removeItem('protoFiles');
+          localStorage.removeItem('mainFile');
+          return;
+        }
+
+        // Determine new main file if the removed file was main
+        let newMainFile = state.mainFile;
+        if (filePath === state.mainFile) {
+          // Pick first remaining file as new main
+          newMainFile = Array.from(newLoadedFiles.keys())[0];
+        }
+
+        // Determine which message to select
+        let messageToSelect = state.selectedMessage;
+        if (needsNewSelection) {
+          // Selected message was in the removed file, pick first available from remaining files
+          messageToSelect = null; // Will be set by parseFiles to first available
+        }
+
+        // Re-parse with remaining files
+        const newState = await parseFiles(newLoadedFiles, newMainFile, messageToSelect);
+        setState(newState);
+
+        // Update localStorage
+        localStorage.setItem(
+          'protoFiles',
+          JSON.stringify(Array.from(newLoadedFiles.entries()))
+        );
+        if (newMainFile) {
+          localStorage.setItem('mainFile', newMainFile);
+        }
+      } catch (error) {
+        setState((prev) => ({
+          ...prev,
+          error: error instanceof Error ? error.message : 'Failed to remove file',
+        }));
+      }
+    },
+    [state.loadedFiles, state.mainFile, state.selectedMessage, parseFiles]
+  );
+
   const getMessageDefinition = useCallback(
     (messageName?: string): string | null => {
       if (!state.root) return null;
@@ -394,6 +472,7 @@ export const useProtobuf = () => {
     getMessageDefinition,
     clearProto,
     loadFromLocalStorage,
+    removeFile,
   };
 };
 

@@ -27,11 +27,13 @@ export interface ConversionResult {
 export type OutputFormat = 'binary' | 'base64' | 'hex' | 'json' | 'textproto';
 
 export interface JsonSchema {
-  type?: string;
+  type?: string | string[];
   properties?: Record<string, any>;
   required?: string[];
   items?: any;
   enum?: any[];
   oneOf?: JsonSchema[];
   description?: string;
+  $ref?: string;
+  definitions?: Record<string, any>;
 }

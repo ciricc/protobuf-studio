@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { Header } from './components/Header';
 import { ProtoUploader } from './components/ProtoUploader';
-import { MessageSelector } from './components/MessageSelector';
+import { FileTreeNavigator } from './components/FileTreeNavigator';
 import { JsonEditor } from './components/JsonEditor';
 import { OutputPanel } from './components/OutputPanel';
 import { ErrorPanel } from './components/ErrorPanel';
 import { ImportResolver } from './components/ImportResolver';
+import { ThemeToggle } from './components/ThemeToggle';
 import { useProtobuf } from './hooks/useProtobuf';
 import { useConversion } from './hooks/useConversion';
 import { generateDefaultMessageJson } from './utils/generateDefaultMessage';
@@ -18,7 +18,6 @@ const DEFAULT_JSON = `{
 function App() {
   const [jsonValue, setJsonValue] = useState<string>(DEFAULT_JSON);
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [fileName, setFileName] = useState<string>('');
   const isInitialMount = useRef(true);
 
   const {
@@ -27,6 +26,8 @@ function App() {
     selectedMessage,
     error: protoError,
     unresolvedImports,
+    loadedFiles,
+    mainFile,
     loadProtoFile,
     selectMessage,
     validateJson,
@@ -34,6 +35,7 @@ function App() {
     getMessageDefinition,
     clearProto,
     loadFromLocalStorage,
+    removeFile,
   } = useProtobuf();
 
   const { convert } = useConversion(root, selectedMessage);
@@ -41,10 +43,6 @@ function App() {
   // Load saved proto on mount
   useEffect(() => {
     loadFromLocalStorage();
-    const savedFileName = localStorage.getItem('lastFileName');
-    if (savedFileName) {
-      setFileName(savedFileName);
-    }
   }, [loadFromLocalStorage]);
 
   // Load or generate JSON when selectedMessage changes
@@ -126,14 +124,6 @@ function App() {
 
   const handleFileSelect = async (file: File) => {
     await loadProtoFile(file);
-    setFileName(file.name);
-  };
-
-  const handleClear = () => {
-    clearProto();
-    setFileName('');
-    setJsonValue(DEFAULT_JSON);
-    setValidationError(null);
   };
 
   const handleConvert = (format: any) => {
@@ -144,23 +134,31 @@ function App() {
   const messageDefinition = getMessageDefinition();
 
   return (
-    <div className="h-screen bg-gray-50 dark:bg-gray-950 flex flex-col">
-      <Header />
-
+    <div className="h-screen bg-gray-50 dark:bg-neutral-950 flex flex-col">
       <main className="flex-1 flex overflow-hidden">
         {/* Left Sidebar */}
-        <aside className="w-72 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col overflow-y-auto">
-          <div className="p-3 space-y-3">
-            <ProtoUploader
-              onFileSelect={handleFileSelect}
-              onClear={handleClear}
-              hasFile={!!root}
-              fileName={fileName}
-            />
+        <aside className="w-72 bg-white dark:bg-neutral-900 border-r border-gray-200 dark:border-neutral-700 flex flex-col overflow-hidden">
+          <div className="flex-shrink-0">
+            <ProtoUploader onFileSelect={handleFileSelect} hasFile={!!root} />
 
             {protoError && <ErrorPanel error={protoError} />}
+          </div>
 
-            {unresolvedImports.length > 0 && (
+          {root && (
+            <div className="flex-1 overflow-hidden">
+              <FileTreeNavigator
+                loadedFiles={loadedFiles}
+                root={root}
+                selectedMessage={selectedMessage}
+                mainFile={mainFile}
+                onSelectMessage={selectMessage}
+                onRemoveFile={removeFile}
+              />
+            </div>
+          )}
+
+          {unresolvedImports.length > 0 && (
+            <div className="p-3 border-t border-gray-200 dark:border-neutral-700 flex-shrink-0">
               <ImportResolver
                 unresolvedImports={unresolvedImports}
                 onFileSelect={(importPath, file) => loadProtoFile(file, importPath)}
@@ -168,24 +166,16 @@ function App() {
                   console.log('Skipped unresolved imports:', unresolvedImports);
                 }}
               />
-            )}
-
-            {root && (
-              <MessageSelector
-                messages={availableMessages}
-                selectedMessage={selectedMessage}
-                onSelect={selectMessage}
-              />
-            )}
-          </div>
+            </div>
+          )}
         </aside>
 
         {/* Center Editor Area */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden z-index-{999}">
           {root && selectedMessage ? (
             <div className="flex-1 flex overflow-hidden">
               {/* JSON Editor */}
-              <div className="flex-1 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col min-w-0">
+              <div className="flex-1 bg-white dark:bg-neutral-900 border-r border-gray-200 dark:border-neutral-700 flex flex-col min-w-0">
                 <JsonEditor
                   value={jsonValue}
                   onChange={setJsonValue}
@@ -195,7 +185,7 @@ function App() {
               </div>
 
               {/* Right Panel: Output */}
-              <div className="w-[560px] bg-white dark:bg-gray-900 flex flex-col border-l border-gray-200 dark:border-gray-700">
+              <div className="w-[420px] bg-white dark:bg-neutral-900 flex flex-col border-l border-gray-200 dark:border-neutral-700">
                 <OutputPanel
                   onConvert={handleConvert}
                   disabled={!root || !selectedMessage || !!validationError}
@@ -213,13 +203,13 @@ function App() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
                   </div>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-neutral-100 mb-2">
                     Welcome to Protobuf Studio
                   </h2>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+                  <p className="text-gray-600 dark:text-neutral-400 text-sm mb-4">
                     Upload a .proto file to start editing and converting Protobuf messages
                   </p>
-                  <div className="space-y-2 text-xs text-gray-500 dark:text-gray-400">
+                  <div className="space-y-2 text-xs text-gray-500 dark:text-neutral-400">
                     <div className="flex items-center justify-center gap-2">
                       <span className="w-2 h-2 bg-green-500 rounded-full"></span>
                       <span>100% Local - All processing in your browser</span>
@@ -240,8 +230,11 @@ function App() {
         </div>
       </main>
 
-      <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 py-2 px-4 text-center text-xs text-gray-500 dark:text-gray-400">
-        Protobuf Studio · Built with React, TypeScript & protobufjs
+      <footer className="bg-white dark:bg-neutral-900 border-t border-gray-200 dark:border-neutral-700 py-2 px-4 text-xs text-gray-500 dark:text-neutral-400">
+        <div className="flex items-center justify-between">
+          <div>Protobuf Studio · Built with React, TypeScript & protobufjs</div>
+          <ThemeToggle />
+        </div>
       </footer>
     </div>
   );

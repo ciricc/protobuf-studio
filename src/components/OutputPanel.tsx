@@ -44,7 +44,7 @@ export const OutputPanel = ({ onConvert, disabled, messageDefinition, messageNam
     registerCustomTheme(monaco);
 
     // Set initial theme based on current app theme
-    monaco.editor.setTheme(theme === 'dark' ? 'custom-dark' : 'vs');
+    monaco.editor.setTheme(theme === 'dark' ? 'gruvbox-dark-hard' : 'vs');
 
     // Register prototext language only once
     if (!isLanguageRegistered) {
@@ -76,7 +76,7 @@ export const OutputPanel = ({ onConvert, disabled, messageDefinition, messageNam
     if (editorRef.current) {
       const monaco = (window as any).monaco;
       if (monaco) {
-        monaco.editor.setTheme(theme === 'dark' ? 'custom-dark' : 'vs');
+        monaco.editor.setTheme(theme === 'dark' ? 'gruvbox-dark-hard' : 'vs');
       }
     }
   }, [theme]);
@@ -173,13 +173,13 @@ export const OutputPanel = ({ onConvert, disabled, messageDefinition, messageNam
   return (
     <div className="flex flex-col h-full">
       {/* Tabs */}
-      <div className="flex gap-1 px-3 pt-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+      <div className="flex gap-1 px-3 pt-2 border-b border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800">
         <button
           onClick={() => setActiveTab('output')}
           className={`px-4 py-2 text-sm font-semibold transition-all rounded-t border-b-2 -mb-[1px] ${
             activeTab === 'output'
-              ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400 bg-white dark:bg-gray-900'
-              : 'text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+              ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400 bg-white dark:bg-neutral-900'
+              : 'text-gray-500 dark:text-neutral-400 border-transparent hover:text-gray-700 dark:hover:text-neutral-200 hover:bg-gray-100 dark:hover:bg-neutral-700'
           }`}
         >
           Output
@@ -188,8 +188,8 @@ export const OutputPanel = ({ onConvert, disabled, messageDefinition, messageNam
           onClick={() => setActiveTab('schema')}
           className={`px-4 py-2 text-sm font-semibold transition-all rounded-t border-b-2 -mb-[1px] ${
             activeTab === 'schema'
-              ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400 bg-white dark:bg-gray-900'
-              : 'text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+              ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400 bg-white dark:bg-neutral-900'
+              : 'text-gray-500 dark:text-neutral-400 border-transparent hover:text-gray-700 dark:hover:text-neutral-200 hover:bg-gray-100 dark:hover:bg-neutral-700'
           }`}
         >
           Schema
@@ -199,10 +199,10 @@ export const OutputPanel = ({ onConvert, disabled, messageDefinition, messageNam
       {/* Tab Content */}
       {activeTab === 'output' ? (
         <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="p-4 space-y-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+          <div className="p-4 space-y-4 border-b border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800">
             {/* Output Format Section */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-neutral-300 mb-2">
                 Output Format
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -212,7 +212,7 @@ export const OutputPanel = ({ onConvert, disabled, messageDefinition, messageNam
                     className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 cursor-pointer transition-all ${
                       selectedFormat === format.value
                         ? 'border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/30'
-                        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-600'
+                        : 'border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 hover:border-gray-300 dark:hover:border-neutral-600'
                     }`}
                   >
                     <input
@@ -230,7 +230,7 @@ export const OutputPanel = ({ onConvert, disabled, messageDefinition, messageNam
                       className={`text-sm font-medium ${
                         selectedFormat === format.value
                           ? 'text-blue-700 dark:text-blue-300'
-                          : 'text-gray-700 dark:text-gray-300'
+                          : 'text-gray-700 dark:text-neutral-300'
                       }`}
                     >
                       {format.label}
@@ -242,7 +242,7 @@ export const OutputPanel = ({ onConvert, disabled, messageDefinition, messageNam
 
             {/* Actions Section */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-neutral-300 mb-2">
                 Actions
               </label>
               <div className="flex gap-2">
@@ -257,7 +257,7 @@ export const OutputPanel = ({ onConvert, disabled, messageDefinition, messageNam
                 <button
                   onClick={handleCopy}
                   disabled={!result || !!result.error}
-                  className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-600 disabled:cursor-not-allowed transition-all text-sm font-medium"
+                  className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white dark:bg-neutral-800 border border-gray-300 dark:border-neutral-600 text-gray-700 dark:text-neutral-300 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-700 disabled:bg-gray-50 dark:disabled:bg-neutral-800 disabled:text-gray-400 dark:disabled:text-neutral-600 disabled:cursor-not-allowed transition-all text-sm font-medium"
                   title="Copy to clipboard"
                 >
                   <Copy size={16} />
@@ -266,7 +266,7 @@ export const OutputPanel = ({ onConvert, disabled, messageDefinition, messageNam
                 <button
                   onClick={handleDownload}
                   disabled={!result || !!result.error}
-                  className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-600 disabled:cursor-not-allowed transition-all text-sm font-medium"
+                  className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white dark:bg-neutral-800 border border-gray-300 dark:border-neutral-600 text-gray-700 dark:text-neutral-300 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-700 disabled:bg-gray-50 dark:disabled:bg-neutral-800 disabled:text-gray-400 dark:disabled:text-neutral-600 disabled:cursor-not-allowed transition-all text-sm font-medium"
                   title="Download file"
                 >
                   <Download size={16} />
@@ -276,20 +276,20 @@ export const OutputPanel = ({ onConvert, disabled, messageDefinition, messageNam
           </div>
 
           <div className="flex-1 flex flex-col overflow-hidden p-3">
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-neutral-300 mb-2">
               Result
             </label>
             <div
               className={`flex-1 border rounded overflow-hidden ${
                 result?.error
                   ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
-                  : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                  : 'bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700'
               }`}
             >
               {result ? (
                 result.error ? (
                   <div className="p-3 font-mono text-sm">
-                    <pre className="whitespace-pre-wrap break-all text-gray-800 dark:text-gray-200">
+                    <pre className="whitespace-pre-wrap break-all text-gray-800 dark:text-neutral-200">
                       {getOutputValue()}
                     </pre>
                   </div>
@@ -297,7 +297,7 @@ export const OutputPanel = ({ onConvert, disabled, messageDefinition, messageNam
                   <Editor
                     value={getOutputValue()}
                     language={getLanguageForFormat()}
-                    theme={theme === 'dark' ? 'custom-dark' : 'vs'}
+                    theme={theme === 'dark' ? 'gruvbox-dark-hard' : 'vs'}
                     beforeMount={handleEditorWillMount}
                     onMount={handleEditorDidMount}
                     options={{
@@ -325,14 +325,14 @@ export const OutputPanel = ({ onConvert, disabled, messageDefinition, messageNam
                   />
                 ) : (
                   <div className="p-3 font-mono text-sm overflow-auto h-full">
-                    <pre className="whitespace-pre-wrap break-all text-gray-800 dark:text-gray-200">
+                    <pre className="whitespace-pre-wrap break-all text-gray-800 dark:text-neutral-200">
                       {getOutputValue()}
                     </pre>
                   </div>
                 )
               ) : (
                 <div className="flex items-center justify-center h-full">
-                  <p className="text-gray-400 dark:text-gray-500 italic text-center pt-8 text-sm">
+                  <p className="text-gray-400 dark:text-neutral-500 italic text-center pt-8 text-sm">
                     Click "Convert" to generate output
                   </p>
                 </div>
