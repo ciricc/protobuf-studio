@@ -24,7 +24,6 @@ function App() {
 
   const {
     root,
-    availableMessages,
     selectedMessage,
     error: protoError,
     unresolvedImports,

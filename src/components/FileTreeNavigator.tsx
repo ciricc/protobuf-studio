@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { ChevronRight, ChevronDown, File, Package, FileText, X, Star, Search, ArrowUp, ArrowDown } from 'lucide-react';
 import type { Root } from 'protobufjs';
-import { parse, Root as ProtoRoot } from 'protobufjs';
 
 interface FileTreeNavigatorProps {
   loadedFiles: Map<string, string>;
