@@ -3,6 +3,7 @@ import { Root } from 'protobufjs';
 import type { ConversionResult, OutputFormat } from '../types/proto';
 import { normalizeEnumValues } from '../utils/normalizeEnumValues';
 import { normalizeBytesFields } from '../utils/normalizeBytesFields';
+import { normalizeInt64Fields } from '../utils/normalizeInt64Fields';
 
 export const useConversion = (root: Root | null, selectedMessage: string | null) => {
   const convert = useCallback(
@@ -20,6 +21,9 @@ export const useConversion = (root: Root | null, selectedMessage: string | null)
 
         // Normalize bytes fields (convert plain text to base64)
         normalizedObj = normalizeBytesFields(normalizedObj, type);
+
+        // Coerce decimal-string 64-bit ints back to numbers/BigInt
+        normalizedObj = normalizeInt64Fields(normalizedObj, type);
 
         // Verify the object first
         const verifyError = type.verify(normalizedObj);

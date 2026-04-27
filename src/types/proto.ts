@@ -42,4 +42,6 @@ export interface JsonSchema {
   description?: string;
   $ref?: string;
   definitions?: Record<string, any>;
+  pattern?: string;
+  additionalProperties?: JsonSchema | boolean;
 }

@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package ecommerce.order;
+
+import "google/protobuf/timestamp.proto";
+import "common.proto";
+import "catalog.proto";
+
+enum OrderStatus {
+  ORDER_STATUS_UNSPECIFIED = 0;
+  PENDING = 1;
+  PAID = 2;
+  SHIPPED = 3;
+  DELIVERED = 4;
+  CANCELLED = 5;
+  REFUNDED = 6;
+}
+
+// One line in an order.
+message OrderItem {
+  string product_id = 1;
+  string product_name = 2; // snapshot at order time
+  int32 quantity = 3;
+  ecommerce.common.Money unit_price = 4;
+  ecommerce.common.Money line_total = 5;
+}
+
+// Payment details. Exactly one method is set per order.
+message Payment {
+  oneof method {
+    CardPayment card = 1;
+    PaypalPayment paypal = 2;
+    CryptoPayment crypto = 3;
+  }
+  ecommerce.common.Money amount = 10;
+  google.protobuf.Timestamp processed_at = 11;
+}
+
+message CardPayment {
+  string last4 = 1;
+  string brand = 2; // VISA, MASTERCARD, ...
+  int32 exp_month = 3;
+  int32 exp_year = 4;
+}
+
+message PaypalPayment {
+  string account_email = 1;
+}
+
+message CryptoPayment {
+  string chain = 1; // BTC, ETH, ...
+  string tx_hash = 2;
+}
+
+// A customer order.
+message Order {
+  string id = 1;
+  string customer_id = 2;
+  OrderStatus status = 3;
+  repeated OrderItem items = 4;
+  ecommerce.common.Address shipping_address = 5;
+  ecommerce.common.Address billing_address = 6;
+  Payment payment = 7;
+  ecommerce.common.Money total = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+  // Arbitrary metadata: campaign, source, ab_test, ...
+  map<string, string> metadata = 11;
+}

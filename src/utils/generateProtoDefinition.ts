@@ -1,16 +1,11 @@
-import { Type, Field, Enum, OneOf, MapField } from 'protobufjs';
+import { Type, Field, Enum, OneOf, MapField, Namespace, ReflectionObject } from 'protobufjs';
 
-/**
- * Generates a human-readable .proto definition from a protobuf Type
- */
 export function generateMessageDefinition(type: Type, indent = 0): string {
   const lines: string[] = [];
   const indentStr = '  '.repeat(indent);
 
-  // Message header
   lines.push(`${indentStr}message ${type.name} {`);
 
-  // Nested enums
   if (type.nested) {
     Object.values(type.nested).forEach((nested) => {
       if (nested instanceof Enum) {
@@ -18,10 +13,7 @@ export function generateMessageDefinition(type: Type, indent = 0): string {
         lines.push(...generateEnumDefinition(nested, indent + 1));
       }
     });
-  }
 
-  // Nested messages
-  if (type.nested) {
     Object.values(type.nested).forEach((nested) => {
       if (nested instanceof Type) {
         lines.push('');
@@ -30,7 +22,6 @@ export function generateMessageDefinition(type: Type, indent = 0): string {
     });
   }
 
-  // OneOf fields
   if (type.oneofsArray && type.oneofsArray.length > 0) {
     type.oneofsArray.forEach((oneof: OneOf) => {
       lines.push('');
@@ -42,11 +33,7 @@ export function generateMessageDefinition(type: Type, indent = 0): string {
     });
   }
 
-  // Regular fields (excluding oneof fields)
-  const regularFields = Object.values(type.fields).filter(
-    (field) => !field.partOf
-  );
-
+  const regularFields = Object.values(type.fields).filter((f) => !f.partOf);
   if (regularFields.length > 0) {
     if (type.oneofsArray && type.oneofsArray.length > 0) {
       lines.push('');
@@ -57,104 +44,101 @@ export function generateMessageDefinition(type: Type, indent = 0): string {
   }
 
   lines.push(`${indentStr}}`);
-
   return lines.join('\n');
 }
 
-/**
- * Generates enum definition
- */
 function generateEnumDefinition(enumType: Enum, indent = 0): string[] {
   const lines: string[] = [];
   const indentStr = '  '.repeat(indent);
-
   lines.push(`${indentStr}enum ${enumType.name} {`);
-
   Object.entries(enumType.values).forEach(([name, value]) => {
     lines.push(`${indentStr}  ${name} = ${value};`);
   });
-
   lines.push(`${indentStr}}`);
-
   return lines;
 }
 
-/**
- * Generates field definition
- */
 function generateFieldDefinition(field: Field, indent = 0): string[] {
   const lines: string[] = [];
   const indentStr = '  '.repeat(indent);
 
-  // Handle map fields
-  if (field instanceof MapField) {
-    const mapField = field as MapField;
-    lines.push(
-      `${indentStr}map<${mapField.keyType}, ${mapField.type}> ${field.name} = ${field.id};`
-    );
-    return lines;
-  }
-
-  // Build field line
-  let fieldLine = indentStr;
-
-  // Repeated modifier
-  if (field.repeated) {
-    fieldLine += 'repeated ';
-  }
-
-  // Optional/required (proto2 style, protobufjs may mark some fields)
-  if (field.required) {
-    fieldLine += 'required ';
-  } else if (field.optional && !field.partOf) {
-    // In proto3, 'optional' keyword is used for explicit optional fields
-    fieldLine += 'optional ';
-  }
-
-  // Field type
-  fieldLine += `${field.type} `;
-
-  // Field name
-  fieldLine += `${field.name} = ${field.id}`;
-
-  // Field options
-  const options: string[] = [];
-
-  if (field.defaultValue !== undefined && field.defaultValue !== null) {
-    const defaultStr =
-      typeof field.defaultValue === 'string'
-        ? `"${field.defaultValue}"`
-        : field.defaultValue;
-    options.push(`default = ${defaultStr}`);
-  }
-
-  if ((field as any).packed !== undefined) {
-    options.push(`packed = ${(field as any).packed}`);
-  }
-
-  if (options.length > 0) {
-    fieldLine += ` [${options.join(', ')}]`;
-  }
-
-  fieldLine += ';';
-
-  // Add comment if field has a comment
   if (field.comment) {
     lines.push(`${indentStr}// ${field.comment}`);
   }
 
-  lines.push(fieldLine);
+  if (field instanceof MapField) {
+    lines.push(`${indentStr}map<${field.keyType}, ${field.type}> ${field.name} = ${field.id};`);
+    return lines;
+  }
 
+  let fieldLine = indentStr;
+  if (field.repeated) fieldLine += 'repeated ';
+  if (field.required) fieldLine += 'required ';
+
+  fieldLine += `${field.type} ${field.name} = ${field.id};`;
+  lines.push(fieldLine);
   return lines;
 }
 
-/**
- * Generates full proto definition including dependencies
- */
-export function generateFullProtoDefinition(
-  type: Type,
-  includeSyntax = true
-): string {
+// Collect every named type referenced by `type` (transitive) excluding nested
+// types defined inside `type` itself and well-known google.protobuf.* types.
+function collectReferencedTypes(type: Type): { types: Type[]; enums: Enum[] } {
+  // Force lazy field-type resolution so `field.resolvedType` is populated.
+  try { (type.root as any).resolveAll(); } catch { /* ignore */ }
+
+  const seenTypes = new Map<string, Type>();
+  const seenEnums = new Map<string, Enum>();
+  const queue: Type[] = [type];
+  const rootFullName = (type as any).fullName as string;
+
+  // Names of types nested inside `type` — skip them, they are rendered inline.
+  const nestedNames = new Set<string>();
+  if (type.nested) {
+    for (const k of Object.keys(type.nested)) {
+      const n = type.nested[k];
+      const fn = (n as any).fullName as string | undefined;
+      if (fn) nestedNames.add(fn);
+    }
+  }
+
+  while (queue.length) {
+    const t = queue.shift()!;
+    for (const field of Object.values(t.fields)) {
+      const resolved = field.resolvedType;
+      if (!resolved) continue;
+      const fullName = (resolved as any).fullName as string;
+      if (!fullName) continue;
+      if (fullName.startsWith('.google.protobuf.') || fullName.startsWith('google.protobuf.')) continue;
+      if (fullName === rootFullName) continue;
+      if (nestedNames.has(fullName)) continue;
+
+      if (resolved instanceof Type) {
+        if (!seenTypes.has(fullName)) {
+          seenTypes.set(fullName, resolved);
+          queue.push(resolved);
+        }
+      } else if (resolved instanceof Enum) {
+        if (!seenEnums.has(fullName)) {
+          seenEnums.set(fullName, resolved);
+        }
+      }
+    }
+  }
+
+  return { types: Array.from(seenTypes.values()), enums: Array.from(seenEnums.values()) };
+}
+
+function getPackageOf(obj: ReflectionObject): string | null {
+  let parent: ReflectionObject | null = obj.parent;
+  const parts: string[] = [];
+  while (parent && (parent as Namespace).name !== undefined && (parent as any).fullName !== '') {
+    if (parent.name) parts.unshift(parent.name);
+    parent = parent.parent;
+  }
+  return parts.length ? parts.join('.') : null;
+}
+
+export function generateFullProtoDefinition(type: Type, includeSyntax = true): string {
   const lines: string[] = [];
 
   if (includeSyntax) {
@@ -162,30 +146,48 @@ export function generateFullProtoDefinition(
     lines.push('');
   }
 
-  // Add package if exists
-  const packageName = getPackageName(type);
-  if (packageName) {
-    lines.push(`package ${packageName};`);
+  const rootPackage = getPackageOf(type);
+  if (rootPackage) {
+    lines.push(`package ${rootPackage};`);
     lines.push('');
   }
 
-  // Generate message definition
   lines.push(generateMessageDefinition(type, 0));
 
-  return lines.join('\n');
-}
-
-/**
- * Extracts package name from type
- */
-function getPackageName(type: Type): string | null {
-  const fullName = (type as any).fullName || '';
-  const parts = fullName.split('.');
-
-  if (parts.length > 1) {
-    // Remove the message name to get package
-    return parts.slice(0, -1).join('.');
+  const { types, enums } = collectReferencedTypes(type);
+  if (types.length === 0 && enums.length === 0) {
+    return lines.join('\n');
   }
 
-  return null;
+  // Group referenced types/enums by package so the output reflects the
+  // file structure of the original .proto sources.
+  const byPackage = new Map<string, { types: Type[]; enums: Enum[] }>();
+  for (const t of types) {
+    const pkg = getPackageOf(t) || '';
+    if (!byPackage.has(pkg)) byPackage.set(pkg, { types: [], enums: [] });
+    byPackage.get(pkg)!.types.push(t);
+  }
+  for (const e of enums) {
+    const pkg = getPackageOf(e) || '';
+    if (!byPackage.has(pkg)) byPackage.set(pkg, { types: [], enums: [] });
+    byPackage.get(pkg)!.enums.push(e);
+  }
+
+  lines.push('');
+  lines.push('// ─── Referenced types ───────────────────────────────────────');
+
+  for (const [pkg, group] of byPackage) {
+    lines.push('');
+    lines.push(pkg ? `// package ${pkg}` : '// (default package)');
+    for (const e of group.enums) {
+      lines.push('');
+      lines.push(...generateEnumDefinition(e, 0));
+    }
+    for (const t of group.types) {
+      lines.push('');
+      lines.push(generateMessageDefinition(t, 0));
+    }
+  }
+
+  return lines.join('\n');
 }

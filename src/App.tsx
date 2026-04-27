@@ -8,6 +8,8 @@ import { ImportResolver } from './components/ImportResolver';
 import { ThemeToggle } from './components/ThemeToggle';
 import { useProtobuf } from './hooks/useProtobuf';
 import { useConversion } from './hooks/useConversion';
+import { useDecode } from './hooks/useDecode';
+import { EXPERIMENTAL_TEXTPROTO } from './config';
 import { generateDefaultMessageJson } from './utils/generateDefaultMessage';
 import { saveMessageState, loadMessageState } from './utils/messageStateStorage';
 
@@ -30,6 +32,7 @@ function App() {
     mainFile,
     messageContext,
     loadProtoFile,
+    loadProtoFiles,
     selectMessage,
     validateJson,
     generateJsonSchema,
@@ -40,6 +43,7 @@ function App() {
   } = useProtobuf();
 
   const { convert } = useConversion(root, selectedMessage);
+  const { decode } = useDecode(root, selectedMessage);
 
   // Load saved proto on mount
   useEffect(() => {
@@ -127,8 +131,29 @@ function App() {
     await loadProtoFile(file);
   };
 
+  const handleLoadExample = async () => {
+    const baseUrl = `${import.meta.env.BASE_URL}examples/ecommerce`;
+    const filenames = ['common.proto', 'catalog.proto', 'order.proto', 'main.proto'];
+    try {
+      const fetched = await Promise.all(
+        filenames.map(async (name) => {
+          const res = await fetch(`${baseUrl}/${name}`);
+          if (!res.ok) throw new Error(`Failed to fetch ${name}: ${res.status}`);
+          return { importPath: name, content: await res.text() };
+        })
+      );
+      await loadProtoFiles(fetched, 'main.proto', 'ecommerce.api.OrderRequest');
+    } catch (error) {
+      console.error('Failed to load example project:', error);
+    }
+  };
+
   const handleConvert = (format: any) => {
     return convert(jsonValue, format);
+  };
+
+  const handleDecoded = (json: string) => {
+    setJsonValue(json);
   };
 
   // Global keyboard shortcuts
@@ -154,10 +179,16 @@ function App() {
         window.dispatchEvent(new CustomEvent('setFormat', { detail: 'hex' }));
       }
 
-      // Alt+3 for ProtoText format
+      // Alt+3: Binary, or ProtoText when experimental flag is on
       if (event.altKey && (event.key === '3' || event.code === 'Digit3')) {
         event.preventDefault();
-        window.dispatchEvent(new CustomEvent('setFormat', { detail: 'textproto' }));
+        const detail = EXPERIMENTAL_TEXTPROTO ? 'textproto' : 'binary';
+        window.dispatchEvent(new CustomEvent('setFormat', { detail }));
+      }
+      // Alt+4 for Binary when experimental textproto is on (Alt+3 is taken by it)
+      if (EXPERIMENTAL_TEXTPROTO && event.altKey && (event.key === '4' || event.code === 'Digit4')) {
+        event.preventDefault();
+        window.dispatchEvent(new CustomEvent('setFormat', { detail: 'binary' }));
       }
     };
 
@@ -174,7 +205,11 @@ function App() {
         {/* Left Sidebar */}
         <aside className="w-72 bg-white dark:bg-neutral-900 border-r border-gray-200 dark:border-neutral-700 flex flex-col overflow-hidden">
           <div className="flex-shrink-0">
-            <ProtoUploader onFileSelect={handleFileSelect} hasFile={!!root} />
+            <ProtoUploader
+              onFileSelect={handleFileSelect}
+              onLoadExample={handleLoadExample}
+              hasFile={!!root}
+            />
 
             {protoError && <ErrorPanel error={protoError} />}
           </div>
@@ -224,7 +259,10 @@ function App() {
               <div className="w-[420px] bg-white dark:bg-neutral-900 flex flex-col border-l border-gray-200 dark:border-neutral-700">
                 <OutputPanel
                   onConvert={handleConvert}
+                  onDecode={decode}
+                  onDecoded={handleDecoded}
                   disabled={!root || !selectedMessage || !!validationError}
+                  decodeDisabled={!root || !selectedMessage}
                   messageDefinition={messageDefinition}
                   messageName={selectedMessage}
                 />

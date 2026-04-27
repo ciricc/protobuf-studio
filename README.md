@@ -7,11 +7,13 @@ A powerful web-based tool for working with Protocol Buffer messages. Edit messag
 ## Features
 
 ### Core Functionality
-- **Multi-format Conversion** - Convert JSON to Base64, Hex, or ProtoText formats
+- **Encode & Decode** - JSON → Base64/Hex/Binary (encode) and Base64/Hex/raw binary file → JSON (decode)
 - **Monaco Editor Integration** - Full-featured code editor with syntax highlighting and IntelliSense
 - **Smart Autocomplete** - Context-aware suggestions for message fields, enums, and nested types
 - **Real-time Validation** - Instant feedback on JSON syntax and protobuf schema compliance
 - **Type Safety** - Automatic enum normalization and bytes field handling
+
+> **ProtoText** is hidden behind an experimental flag (`EXPERIMENTAL_TEXTPROTO` in `src/config.ts`). It is encode-only and not roundtrip-verified — disabled by default until decode is implemented.
 
 ### File Management
 - **Multi-file Support** - Work with complex proto projects spanning multiple files
@@ -79,12 +81,20 @@ npm run lint
    - Use autocomplete (triggered automatically or with Ctrl+Space) for field suggestions
    - Validation errors appear in real-time at the bottom of the editor
 
-4. **Convert Data**
-   - Choose output format: Base64, Hex, or ProtoText
+4. **Encode**
+   - In the right panel, select the **Encode →** mode (default)
+   - Choose output format: Base64, Hex, or Binary
    - Click "Convert" or press Cmd/Ctrl+Enter
+   - For Binary the result panel shows byte count + a hex preview; use Download to save as `output.bin`
    - View results in the Output tab or inspect the schema in the Schema tab
 
-5. **Export Results**
+5. **Decode**
+   - Switch the right panel to **← Decode** mode
+   - Choose input format (Base64 / Hex) and either paste the payload or upload a file
+   - Files with `.bin`/`.pb` (or unknown extensions) are read as raw binary; `.txt`/`.hex`/`.b64` as text
+   - Click **Decode** to replace the JSON in the editor
+
+6. **Export Results**
    - Click "Copy" to copy output to clipboard
    - Click the download button to save as a file
    - Files are named by format (e.g., `output.base64.txt`)
@@ -97,10 +107,10 @@ npm run lint
 | `Enter` | Navigate to next search result |
 | `Shift + Enter` | Navigate to previous search result |
 | `Escape` | Clear search and unfocus |
-| `Cmd/Ctrl + Enter` | Convert JSON to selected format |
+| `Cmd/Ctrl + Enter` | Convert JSON to selected format (Encode mode) |
 | `Alt + 1` | Switch to Base64 format |
 | `Alt + 2` | Switch to Hex format |
-| `Alt + 3` | Switch to ProtoText format |
+| `Alt + 3` | Switch to Binary format |
 | `Ctrl + Space` | Trigger autocomplete in editor |
 
 ### Advanced Features

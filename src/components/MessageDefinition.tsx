@@ -113,8 +113,7 @@ export const MessageDefinition = ({ definition }: MessageDefinitionProps) => {
                 overviewRulerLanes: 0,
                 hideCursorInOverviewRuler: true,
                 overviewRulerBorder: false,
-                wordWrap: 'on',
-                wrappingStrategy: 'advanced',
+                wordWrap: 'off',
                 fontFamily: "'JetBrains Mono', 'Fira Code', 'Monaco', 'Courier New', monospace",
                 padding: { top: 12, bottom: 12 },
               }}

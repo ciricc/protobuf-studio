@@ -111,9 +111,9 @@ export const JsonEditor = ({ value, onChange, schema, error, messageContext }: J
       window.dispatchEvent(new CustomEvent('setFormat', { detail: 'hex' }));
     });
 
-    // Add Alt+3 for ProtoText format
+    // Add Alt+3 for Binary format (or ProtoText when experimental)
     editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.Digit3, () => {
-      window.dispatchEvent(new CustomEvent('setFormat', { detail: 'textproto' }));
+      window.dispatchEvent(new CustomEvent('setFormat', { detail: 'binary' }));
     });
 
     // Configure JSON language settings with better completion support
@@ -286,9 +286,6 @@ export const JsonEditor = ({ value, onChange, schema, error, messageContext }: J
         )}
       </div>
       <div className="flex-1 overflow-hidden relative" tabIndex={0} role="textbox">
-        {error && (
-          <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-red-400 dark:bg-red-500 z-10 pointer-events-none" />
-        )}
         <Editor
           height="100%"
           defaultLanguage="json"

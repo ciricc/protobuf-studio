@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package ecommerce.api;
+
+import "google/protobuf/timestamp.proto";
+import "common.proto";
+import "catalog.proto";
+import "order.proto";
+
+// Top-level message demonstrating the full schema graph.
+// Pick this in the file tree to see imports, enums, oneof, maps, nested
+// messages and well-known types working together.
+message OrderRequest {
+  string request_id = 1;
+  string customer_id = 2;
+
+  // Items the customer wants to buy.
+  repeated CartLine cart = 3;
+
+  ecommerce.common.Address shipping_address = 4;
+  ecommerce.common.Address billing_address = 5;
+
+  // Optional snapshot of the products being ordered (useful for offline review).
+  repeated ecommerce.catalog.Product product_snapshot = 6;
+
+  // Selected payment method to charge once the order is placed.
+  ecommerce.order.Payment payment = 7;
+
+  // Arbitrary client metadata (utm_source, device, locale, ...).
+  map<string, string> metadata = 8;
+
+  google.protobuf.Timestamp submitted_at = 9;
+}
+
+message CartLine {
+  string product_id = 1;
+  int32 quantity = 2;
+  // Server will fill this in from catalog if missing.
+  ecommerce.common.Money unit_price = 3;
+}
+
+// Server response after the order is placed.
+message OrderResponse {
+  string request_id = 1;
+  ecommerce.order.Order order = 2;
+  ecommerce.common.PageInfo related_page = 3;
+}

@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package ecommerce.common;
+
+// Postal address used for shipping and billing.
+message Address {
+  string street = 1;
+  string city = 2;
+  string region = 3;
+  string country = 4;
+  string postal_code = 5;
+}
+
+// Money amount with ISO-4217 currency code.
+message Money {
+  string currency = 1; // e.g. "USD", "EUR"
+  // Whole units of the amount (e.g. dollars).
+  int64 units = 2;
+  // Fractional units in nano (10^-9). 1 USD = 1_000_000_000 nanos.
+  int32 nanos = 3;
+}
+
+// Pagination request shared across list endpoints.
+message PageRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+}
+
+// Pagination response metadata.
+message PageInfo {
+  string next_page_token = 1;
+  int32 total_count = 2;
+}

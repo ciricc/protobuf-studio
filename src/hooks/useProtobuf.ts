@@ -3,6 +3,7 @@ import { parse, Type, Field, Root } from 'protobufjs';
 import type { ProtoState, ValidationResult, JsonSchema, MessageContext } from '../types/proto';
 import { generateFullProtoDefinition } from '../utils/generateProtoDefinition';
 import { normalizeEnumValues } from '../utils/normalizeEnumValues';
+import { normalizeInt64Fields } from '../utils/normalizeInt64Fields';
 
 export const newRoot = (): Promise<Root> => {
   return new Root().load([
@@ -242,6 +243,45 @@ export const useProtobuf = () => {
     []
   );
 
+  // Batch-load multiple files in one parse pass. Needed when several files
+  // import each other — adding them one-by-one would race on state updates.
+  const loadProtoFiles = useCallback(
+    async (
+      files: { content: string; importPath: string }[],
+      mainImportPath?: string,
+      preferredMessage?: string
+    ) => {
+      try {
+        const newLoadedFiles = new Map(state.loadedFiles);
+        for (const f of files) {
+          newLoadedFiles.set(f.importPath, f.content);
+        }
+        const mainFileName =
+          mainImportPath ||
+          state.mainFile ||
+          files[0]?.importPath ||
+          null;
+        const newState = await parseFiles(
+          newLoadedFiles,
+          mainFileName,
+          preferredMessage || state.selectedMessage
+        );
+        setState(newState);
+        localStorage.setItem(
+          'protoFiles',
+          JSON.stringify(Array.from(newLoadedFiles.entries()))
+        );
+        if (mainFileName) localStorage.setItem('mainFile', mainFileName);
+      } catch (error) {
+        setState((prev) => ({
+          ...prev,
+          error: error instanceof Error ? error.message : 'Failed to load .proto files',
+        }));
+      }
+    },
+    [state.loadedFiles, state.mainFile, state.selectedMessage, parseFiles]
+  );
+
   const loadProtoFile = useCallback(
     async (file: File, importPath?: string) => {
       try {
@@ -357,7 +397,9 @@ export const useProtobuf = () => {
 
         // Convert enum string values to numbers for validation
         // protobufjs verify() expects numeric enum values
-        const normalizedObj = normalizeEnumValues(obj, type);
+        let normalizedObj = normalizeEnumValues(obj, type);
+        // Coerce decimal-string 64-bit ints (produced by Type.toObject longs:String) back to numbers
+        normalizedObj = normalizeInt64Fields(normalizedObj, type);
 
         const error = type.verify(normalizedObj);
 
@@ -535,6 +577,7 @@ export const useProtobuf = () => {
   return {
     ...state,
     loadProtoFile,
+    loadProtoFiles,
     loadProtoFromText,
     selectMessage,
     validateJson,
@@ -630,6 +673,17 @@ function convertTypeToJsonSchema(type: Type, root?: any, visitedTypes?: Set<stri
 }
 
 function convertFieldToJsonSchema(field: Field, root?: any, visitedTypes?: Set<string>): JsonSchema {
+  // Map fields come through here too (MapField extends Field). protobufjs marks
+  // them with .map=true and they are also reported as repeated, so check map first.
+  if ((field as any).map) {
+    const keyType = (field as any).keyType as string | undefined;
+    return {
+      type: 'object',
+      additionalProperties: convertFieldTypeToJsonSchema(field, root, visitedTypes),
+      description: `Map<${keyType ?? 'string'}, ${field.type}>`,
+    } as JsonSchema;
+  }
+
   // Handle repeated fields
   if (field.repeated) {
     return {
@@ -642,23 +696,39 @@ function convertFieldToJsonSchema(field: Field, root?: any, visitedTypes?: Set<s
   return convertFieldTypeToJsonSchema(field, root, visitedTypes);
 }
 
+// 64-bit integer protobuf types — protobufjs decodes them as decimal strings to
+// preserve precision, but encode also accepts plain integers. Schema must allow
+// both so Monaco doesn't flag valid decoded payloads.
+const INT64_TYPES = new Set([
+  'int64',
+  'uint64',
+  'sint64',
+  'fixed64',
+  'sfixed64',
+]);
+
 function convertFieldTypeToJsonSchema(field: Field, root?: any, visitedTypes?: Set<string>): JsonSchema {
   const protoType = field.type;
+
+  if (INT64_TYPES.has(protoType)) {
+    return {
+      oneOf: [
+        { type: 'integer' },
+        { type: 'string', pattern: '^-?\\d+$' },
+      ],
+      description: `Type: ${protoType} (integer or decimal string)`,
+    } as JsonSchema;
+  }
 
   // Map protobuf types to JSON schema types
   const typeMap: Record<string, string> = {
     double: 'number',
     float: 'number',
     int32: 'integer',
-    int64: 'integer',
     uint32: 'integer',
-    uint64: 'integer',
     sint32: 'integer',
-    sint64: 'integer',
     fixed32: 'integer',
-    fixed64: 'integer',
     sfixed32: 'integer',
-    sfixed64: 'integer',
     bool: 'boolean',
     string: 'string',
     bytes: 'string',

@@ -480,7 +480,7 @@ export const FileTreeNavigator: React.FC<FileTreeNavigatorProps> = ({
     return (
       <div
         key={message.fullName}
-        className={`flex items-center gap-1 py-0.5 px-1.5 cursor-pointer transition-colors rounded text-xs ${
+        className={`flex items-center gap-1.5 py-1 px-1.5 cursor-pointer transition-colors rounded text-sm ${
           isSelected
             ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-900 dark:text-blue-100'
             : 'hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-700 dark:text-neutral-300'
@@ -488,7 +488,7 @@ export const FileTreeNavigator: React.FC<FileTreeNavigatorProps> = ({
         style={{ paddingLeft }}
         onClick={() => onSelectMessage(message.fullName)}
       >
-        <FileText size={12} className="flex-shrink-0" />
+        <FileText size={14} className="flex-shrink-0" />
         <span className="truncate" title={message.fullName}>
           {highlightText(message.name, searchQuery)}
         </span>
@@ -521,16 +521,16 @@ export const FileTreeNavigator: React.FC<FileTreeNavigatorProps> = ({
     return (
       <div key={pkg.name}>
         <div
-          className="flex items-center gap-1 py-0.5 px-1.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors rounded text-gray-700 dark:text-neutral-300 text-xs"
+          className="flex items-center gap-1.5 py-1 px-1.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors rounded text-gray-700 dark:text-neutral-300 text-sm"
           style={{ paddingLeft }}
           onClick={() => togglePackage(pkg.name)}
         >
           {isExpanded ? (
-            <ChevronDown size={11} className="flex-shrink-0" />
+            <ChevronDown size={13} className="flex-shrink-0" />
           ) : (
-            <ChevronRight size={11} className="flex-shrink-0" />
+            <ChevronRight size={13} className="flex-shrink-0" />
           )}
-          <Package size={11} className="flex-shrink-0" />
+          <Package size={13} className="flex-shrink-0" />
           <span className="truncate" title={pkg.name}>
             {pkg.name}
           </span>
@@ -577,25 +577,25 @@ export const FileTreeNavigator: React.FC<FileTreeNavigatorProps> = ({
           {hasContent && (
             <>
               {isExpanded ? (
-                <ChevronDown size={11} className="flex-shrink-0 text-gray-500 dark:text-neutral-400" />
+                <ChevronDown size={13} className="flex-shrink-0 text-gray-500 dark:text-neutral-400" />
               ) : (
-                <ChevronRight size={11} className="flex-shrink-0 text-gray-500 dark:text-neutral-400" />
+                <ChevronRight size={13} className="flex-shrink-0 text-gray-500 dark:text-neutral-400" />
               )}
             </>
           )}
           {!hasContent && <div className="w-3" />}
-          <File size={12} className="flex-shrink-0 text-blue-600 dark:text-blue-400" />
+          <File size={14} className="flex-shrink-0 text-blue-600 dark:text-blue-400" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1">
-              <span className="text-xs font-medium text-gray-900 dark:text-neutral-100 truncate" title={file.path}>
+              <span className="text-sm font-medium text-gray-900 dark:text-neutral-100 truncate" title={file.path}>
                 {file.path.split('/').pop() || file.path}
               </span>
               {file.isMain && (
-                <Star size={10} className="flex-shrink-0 text-yellow-500 fill-yellow-500" aria-label="Main file" />
+                <Star size={12} className="flex-shrink-0 text-yellow-500 fill-yellow-500" aria-label="Main file" />
               )}
             </div>
             {file.path.includes('/') && (
-              <div className="text-[10px] text-gray-500 dark:text-neutral-400 truncate leading-tight" title={file.path}>
+              <div className="text-[11px] text-gray-500 dark:text-neutral-400 truncate leading-tight" title={file.path}>
                 {file.path}
               </div>
             )}
@@ -605,7 +605,7 @@ export const FileTreeNavigator: React.FC<FileTreeNavigatorProps> = ({
             className="p-0.5 hover:bg-red-100 dark:hover:bg-red-900/50 rounded transition-colors text-gray-400 dark:text-neutral-500 hover:text-red-600 dark:hover:text-red-400"
             title="Remove file"
           >
-            <X size={12} />
+            <X size={14} />
           </button>
         </div>
 
@@ -632,8 +632,8 @@ export const FileTreeNavigator: React.FC<FileTreeNavigatorProps> = ({
       {/* Search Input - Fixed */}
       <div className="flex-shrink-0 mb-2 space-y-2 relative z-10">
         <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none z-20">
-            <Search size={12} className="text-gray-400 dark:text-neutral-500" />
+          <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none z-20">
+            <Search size={14} className="text-gray-400 dark:text-neutral-500" />
           </div>
           <input
             ref={searchInputRef}
@@ -641,7 +641,7 @@ export const FileTreeNavigator: React.FC<FileTreeNavigatorProps> = ({
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Search messages..."
-            className="relative z-10 w-full pl-7 pr-16 py-1.5 text-xs bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 focus:border-transparent text-gray-900 dark:text-neutral-100 placeholder-gray-400 dark:placeholder-neutral-500"
+            className="relative z-10 w-full pl-8 pr-16 py-1.5 text-sm bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 focus:border-transparent text-gray-900 dark:text-neutral-100 placeholder-gray-400 dark:placeholder-neutral-500"
           />
           <div className="absolute inset-y-0 right-0 flex items-center gap-0.5 pr-1 z-20">
             {searchQuery && (
@@ -685,7 +685,7 @@ export const FileTreeNavigator: React.FC<FileTreeNavigatorProps> = ({
 
       {/* Files & Messages Header */}
       <div className="flex-shrink-0 mb-1.5">
-        <h3 className="text-xs font-semibold text-gray-700 dark:text-neutral-300 px-1">
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-neutral-300 px-1">
           Files & Messages
         </h3>
       </div>
