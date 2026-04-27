@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Editor, { type OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
+import { getLocation } from 'jsonc-parser';
 import type { JsonSchema, MessageContext } from '../types/proto';
 import { useTheme } from '../contexts/ThemeContext';
 import { registerCustomTheme } from '../utils/monacoTheme';
@@ -13,245 +14,160 @@ interface JsonEditorProps {
   messageContext?: MessageContext | null;
 }
 
-// Helper function to get type string from schema property
-const getTypeLabel = (property: any): string => {
-  if (!property) return '';
+const SCHEMA_URI = 'inmemory://proto-schema.json';
 
-  if (property.type) {
-    if (Array.isArray(property.type)) {
-      return property.type.join(' | ');
-    }
-    if (property.type === 'array') {
-      if (property.items?.$ref) {
-        const refParts = property.items.$ref.split('/');
-        const typeName = refParts[refParts.length - 1];
-        return `${typeName}[]`;
-      }
-      if (property.items?.type) {
-        return `${property.items.type}[]`;
-      }
-      return 'array';
-    }
-    return property.type;
-  }
-
-  if (property.enum) {
-    return 'enum';
-  }
-
-  if (property.$ref) {
-    // Extract type name from $ref
-    const refParts = property.$ref.split('/');
-    return refParts[refParts.length - 1];
-  }
-
-  return '';
-};
-
-// Helper function to get properties from schema at a given path
-const getPropertiesFromPath = (schema: JsonSchema, path: string[]): any => {
-  let current = schema;
-
-  for (const key of path) {
-    if (current.properties && current.properties[key]) {
-      current = current.properties[key];
-
-      // Handle $ref
-      if (current.$ref && schema.definitions) {
-        const refName = current.$ref.split('/').pop();
-        if (refName && schema.definitions[refName]) {
-          current = schema.definitions[refName];
-        }
-      }
-
-      // Handle array items
-      if (current.type === 'array' && current.items) {
-        current = current.items;
-        if (current.$ref && schema.definitions) {
-          const refName = current.$ref.split('/').pop();
-          if (refName && schema.definitions[refName]) {
-            current = schema.definitions[refName];
-          }
-        }
-      }
+// Walk the schema along a JSON path (from jsonc-parser's `loc.path`) and
+// decide whether the object at the caret has any candidate keys to suggest.
+// Returns false ONLY when we resolve cleanly to a map-shaped schema
+// (`additionalProperties` value, no `properties`) — that's the case where
+// Monaco would show an empty "No suggestions" widget. For any walk we can't
+// resolve (unknown combinator, ref, etc.) we return true and let Monaco's
+// own JSON service decide.
+function schemaHasKeysAt(schema: JsonSchema | null | undefined, path: (string | number)[]): boolean {
+  if (!schema) return false;
+  let node: any = schema;
+  for (const segment of path) {
+    if (!node || typeof node !== 'object') return true;
+    if (typeof segment === 'number') {
+      if (!node.items) return true;
+      node = node.items;
     } else {
-      return null;
+      const next = node.properties?.[segment];
+      if (next) {
+        node = next;
+      } else if (node.additionalProperties && typeof node.additionalProperties === 'object') {
+        node = node.additionalProperties;
+      } else {
+        return true;
+      }
     }
   }
-
-  return current.properties || null;
-};
+  if (!node || typeof node !== 'object') return true;
+  // Map-shaped: object whose only key-source is additionalProperties.
+  const hasProps = !!node.properties && Object.keys(node.properties).length > 0;
+  const hasAdditional = !!node.additionalProperties && typeof node.additionalProperties === 'object';
+  if (!hasProps && hasAdditional) return false;
+  return true;
+}
 
 export const JsonEditor = ({ value, onChange, schema, error, messageContext }: JsonEditorProps) => {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const monacoRef = useRef<any>(null);
+  const [mounted, setMounted] = useState(false);
   const { theme } = useTheme();
-  const completionProviderRef = useRef<any>(null);
 
   const handleEditorDidMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
+    monacoRef.current = monaco;
+    setMounted(true);
 
-    // Register custom dark theme
     registerCustomTheme(monaco);
-
-    // Set initial theme based on current app theme
     monaco.editor.setTheme(theme === 'dark' ? 'gruvbox-dark-hard' : 'vs');
 
-    // Add Cmd+Enter keyboard shortcut for conversion
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
       window.dispatchEvent(new CustomEvent('triggerConversion'));
     });
-
-    // Add Alt+1 for Base64 format
     editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.Digit1, () => {
       window.dispatchEvent(new CustomEvent('setFormat', { detail: 'base64' }));
     });
-
-    // Add Alt+2 for Hex format
     editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.Digit2, () => {
       window.dispatchEvent(new CustomEvent('setFormat', { detail: 'hex' }));
     });
-
-    // Add Alt+3 for Binary format (or ProtoText when experimental)
     editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.Digit3, () => {
       window.dispatchEvent(new CustomEvent('setFormat', { detail: 'binary' }));
     });
 
-    // Configure JSON language settings with better completion support
-    monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
-      validate: true,
-      allowComments: false,
-      schemaValidation: 'error',
-      enableSchemaRequest: false,
-    });
-
-    // Register custom completion provider that shows types
-    if (completionProviderRef.current) {
-      completionProviderRef.current.dispose();
-    }
-
-    completionProviderRef.current = monaco.languages.registerCompletionItemProvider('json', {
-      provideCompletionItems: (model, position) => {
-        if (!schema) return { suggestions: [] };
-
-        const textUntilPosition = model.getValueInRange({
-          startLineNumber: 1,
-          startColumn: 1,
-          endLineNumber: position.lineNumber,
-          endColumn: position.column,
-        });
-
-        // Parse the current path in JSON
-        const lines = textUntilPosition.split('\n');
-        const currentLine = lines[position.lineNumber - 1];
-        const beforeCursor = currentLine.substring(0, position.column - 1);
-
-        // Simple check if we're in a property key position
-        const inPropertyKey = /[{,]\s*"?\w*$/.test(beforeCursor.trim());
-
-        if (!inPropertyKey) {
-          return { suggestions: [] };
+    // Trigger suggestions only when the user is typing a property key.
+    // Two valid moments:
+    //   1. Just opened a key string — `"` (or auto-paired `""`).
+    //   2. Typing characters inside an already-quoted key (e.g. fixing a
+    //      typo in the middle of `"metadata"`).
+    // Anywhere else (values, after `,`, blank lines) we stay quiet so Enter
+    // remains a newline and typing isn't interrupted.
+    //
+    // We also skip when the surrounding schema has no candidate keys (e.g.
+    // map<string,V>, where keys are user-defined) — otherwise Monaco shows
+    // an empty "No suggestions" popup that just gets in the way.
+    const KEY_CHAR = /^[A-Za-z0-9_]$/;
+    let triggerTimer: ReturnType<typeof setTimeout> | null = null;
+    editor.onDidChangeModelContent((e) => {
+      if (e.changes.length !== 1) return;
+      const inserted = e.changes[0].text;
+      // Monaco's autoClosingQuotes makes a single `"` keystroke land as `""`
+      // (cursor between). Accept both so the widget opens on the first press.
+      const isQuote = inserted === '"' || inserted === '""';
+      const isKeyChar = inserted.length === 1 && KEY_CHAR.test(inserted);
+      if (!isQuote && !isKeyChar) return;
+      if (triggerTimer) clearTimeout(triggerTimer);
+      triggerTimer = setTimeout(() => {
+        const model = editor.getModel();
+        if (!model) return;
+        const offset = model.getOffsetAt(editor.getPosition()!);
+        try {
+          const loc = getLocation(model.getValue(), offset);
+          if (!loc.isAtPropertyKey) return;
+          // When at a property-key, the last path segment is the partial key
+          // being typed — skip it so we ask "does the parent object have
+          // suggestable keys?", not "does the key's value-type have keys?".
+          const parentPath = loc.path.slice(0, -1);
+          if (!schemaHasKeysAt(schema, parentPath)) return;
+          editor.trigger('auto', 'editor.action.triggerSuggest', {});
+        } catch {
+          // jsonc-parser doesn't throw, but be defensive.
         }
-
-        // Get current JSON path
-        const path: string[] = [];
-        let braceCount = 0;
-
-        for (let i = textUntilPosition.length - 1; i >= 0; i--) {
-          const char = textUntilPosition[i];
-          if (char === '}') braceCount++;
-          if (char === '{') {
-            braceCount--;
-            if (braceCount < 0) break;
-          }
-        }
-
-        // Get properties for current level
-        const properties = getPropertiesFromPath(schema, path);
-
-        if (!properties) {
-          return { suggestions: [] };
-        }
-
-        const word = model.getWordUntilPosition(position);
-        const range = {
-          startLineNumber: position.lineNumber,
-          endLineNumber: position.lineNumber,
-          startColumn: word.startColumn,
-          endColumn: word.endColumn,
-        };
-
-        const suggestions = Object.keys(properties).map((key) => {
-          const property = properties[key];
-          const typeLabel = getTypeLabel(property);
-          const description = property.description || '';
-
-          return {
-            label: key,
-            kind: monaco.languages.CompletionItemKind.Property,
-            insertText: `"${key}": `,
-            range: range,
-            detail: typeLabel, // Type shown on the right
-            documentation: description,
-            sortText: key,
-          };
-        });
-
-        return { suggestions };
-      },
+      }, 150);
     });
   };
 
+  // Push the schema into Monaco's built-in JSON language service. The service
+  // handles validation, hover, and completion (key/value/enum) on its own —
+  // it knows the JSON grammar and applies the schema correctly. We don't
+  // register a custom completion provider; the built-in one is what every
+  // serious Monaco-based editor (VS Code, Theia, monaco-yaml…) uses.
+  //
+  // `fileMatch` must match the model's URI for the JSON service to actually
+  // apply the schema. Monaco-react models look like `inmemory://model/1`,
+  // which `*` does NOT match — globs don't traverse `://`. We pin the schema
+  // to the editor's exact URI string instead.
   useEffect(() => {
-    if (schema && editorRef.current) {
-      const monaco = (window as any).monaco;
-      if (monaco) {
-        // // Update schema for validation and autocomplete
-        monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
-          validate: true,
-          allowComments: false,
-          schemaValidation: 'error',
-          enableSchemaRequest: false,
-          schemas: [
+    if (!mounted) return;
+    const monaco = monacoRef.current;
+    const ed = editorRef.current;
+    if (!monaco || !ed) return;
+    const modelUri = ed.getModel()?.uri.toString();
+    if (!modelUri) return;
+    monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
+      validate: true,
+      allowComments: false,
+      schemaValidation: 'warning',
+      enableSchemaRequest: false,
+      schemas: schema
+        ? [
             {
-              uri: 'inmemory://proto-schema.json',
-              fileMatch: ['*'],
-              schema: schema,
+              uri: SCHEMA_URI,
+              fileMatch: [modelUri],
+              schema,
             },
-          ],
-        });
-      }
-    }
-  }, [schema]);
+          ]
+        : [],
+    });
+  }, [schema, mounted]);
 
-  // Update Monaco Editor theme when app theme changes
+  // Keep editor theme synced with the app theme.
   useEffect(() => {
-    if (editorRef.current) {
-      const monaco = (window as any).monaco;
-      if (monaco) {
-        monaco.editor.setTheme(theme === 'dark' ? 'gruvbox-dark-hard' : 'vs');
-      }
+    const monaco = monacoRef.current;
+    if (monaco) {
+      monaco.editor.setTheme(theme === 'dark' ? 'gruvbox-dark-hard' : 'vs');
     }
   }, [theme]);
 
-  // Force update editor value when it changes externally
+  // Force-update the editor value on external change (project switch, decode).
   useEffect(() => {
-    if (editorRef.current) {
-      const editor = editorRef.current;
-      const currentValue = editor.getValue();
-      if (currentValue !== value) {
-        editor.setValue(value);
-      }
+    const ed = editorRef.current;
+    if (ed && ed.getValue() !== value) {
+      ed.setValue(value);
     }
   }, [value]);
-
-  // Cleanup completion provider on unmount
-  useEffect(() => {
-    return () => {
-      if (completionProviderRef.current) {
-        completionProviderRef.current.dispose();
-      }
-    };
-  }, []);
 
   return (
     <div className="flex flex-col h-full relative">
@@ -303,19 +219,23 @@ export const JsonEditor = ({ value, onChange, schema, error, messageContext }: J
             tabSize: 2,
             formatOnPaste: true,
             formatOnType: true,
-            suggest: {
-              showProperties: true,
-              showFields: true,
-              showInlineDetails: false, // Don't show details inline
-              showStatusBar: false,
-              preview: true,
-              previewMode: 'subwordSmart',
-            },
-            quickSuggestions: {
-              strings: true,
-              comments: false,
-              other: true,
-            },
+            // Render the suggest widget in <body> so surrounding `overflow-hidden`
+            // containers don't clip it when it grows past the editor boundary.
+            fixedOverflowWidgets: true,
+            // Disable noise sources unrelated to JSON schema completion:
+            // word-based suggestions surface random words from the file,
+            // and inline ghost-text shows up after stray characters.
+            wordBasedSuggestions: 'off',
+            inlineSuggest: { enabled: false },
+            // Auto-trigger suggestions while typing inside strings; the JSON
+            // language service decides whether to actually show fields.
+            // No auto-triggering by Monaco. Both `quickSuggestions` (fires
+            // on every typed char) and `suggestOnTriggerCharacters` (fires
+            // when monaco-json sees `,`, `:`, `"`, etc.) would open the
+            // widget where it isn't wanted. We trigger imperatively only
+            // when the caret is in a property-key position.
+            quickSuggestions: false,
+            suggestOnTriggerCharacters: false,
             padding: { top: 12, bottom: 12 },
           }}
         />

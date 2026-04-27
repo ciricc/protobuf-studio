@@ -650,6 +650,11 @@ function convertTypeToJsonSchema(type: Type, root?: any, visitedTypes?: Set<stri
     delete schema.required;
   }
 
+  // Surface typos / removed fields as schema warnings. Unknown fields are
+  // legal at the wire level (protobuf silently ignores them), but in an
+  // editor they almost always indicate a mistake.
+  schema.additionalProperties = false;
+
   // Remove from visited after processing (allow same type in different branches)
   visitedTypes.delete(typeId);
 

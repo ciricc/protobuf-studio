@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { ChevronRight, ChevronDown, File, Package, FileText, X, Star, Search, ArrowUp, ArrowDown } from 'lucide-react';
-import type { Root } from 'protobufjs';
+import { Type, type Root } from 'protobufjs';
 
 interface FileTreeNavigatorProps {
   loadedFiles: Map<string, string>;
@@ -83,8 +83,9 @@ export const FileTreeNavigator: React.FC<FileTreeNavigatorProps> = ({
         const item = namespace.nested[key];
         const fullName = prefix ? `${prefix}.${key}` : key;
 
-        // Check if it's a Type (message)
-        if (item.constructor.name === 'Type') {
+        // Check if it's a Type (message). Use instanceof, not constructor.name
+        // — class names get minified in Vite production builds.
+        if (item instanceof Type) {
           messages.push({
             type: 'message',
             name: key,
