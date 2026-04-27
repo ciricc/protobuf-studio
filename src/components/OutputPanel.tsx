@@ -55,7 +55,7 @@ export const OutputPanel = ({
       <div className="flex gap-1 px-3 pt-2 border-b border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800">
         <button
           onClick={() => setActiveTab('output')}
-          className={`px-4 py-2 text-sm font-semibold transition-all rounded-t border-b-2 -mb-[1px] ${
+          className={`px-3 py-2 text-sm font-medium transition-colors rounded-t border-b-2 -mb-[1px] ${
             activeTab === 'output'
               ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400 bg-white dark:bg-neutral-900'
               : 'text-gray-500 dark:text-neutral-400 border-transparent hover:text-gray-700 dark:hover:text-neutral-200 hover:bg-gray-100 dark:hover:bg-neutral-700'
@@ -65,7 +65,7 @@ export const OutputPanel = ({
         </button>
         <button
           onClick={() => setActiveTab('schema')}
-          className={`px-4 py-2 text-sm font-semibold transition-all rounded-t border-b-2 -mb-[1px] ${
+          className={`px-3 py-2 text-sm font-medium transition-colors rounded-t border-b-2 -mb-[1px] ${
             activeTab === 'schema'
               ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400 bg-white dark:bg-neutral-900'
               : 'text-gray-500 dark:text-neutral-400 border-transparent hover:text-gray-700 dark:hover:text-neutral-200 hover:bg-gray-100 dark:hover:bg-neutral-700'
@@ -78,11 +78,11 @@ export const OutputPanel = ({
       {activeTab === 'output' ? (
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Mode toggle */}
-          <div className="px-4 pt-3 pb-2 bg-gray-50 dark:bg-neutral-800 border-b border-gray-200 dark:border-neutral-700">
-            <div className="grid grid-cols-2 gap-1 p-1 bg-gray-200 dark:bg-neutral-900 rounded-lg">
+          <div className="px-3 pt-3 pb-2 bg-gray-50 dark:bg-neutral-800 border-b border-gray-200 dark:border-neutral-700">
+            <div className="grid grid-cols-2 gap-1 p-1 bg-gray-200 dark:bg-neutral-900 rounded-md">
               <button
                 onClick={() => setMode('encode')}
-                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+                className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
                   mode === 'encode'
                     ? 'bg-white dark:bg-neutral-700 text-gray-900 dark:text-neutral-100 shadow-sm'
                     : 'text-gray-600 dark:text-neutral-400 hover:text-gray-900 dark:hover:text-neutral-200'
@@ -92,7 +92,7 @@ export const OutputPanel = ({
               </button>
               <button
                 onClick={() => setMode('decode')}
-                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+                className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
                   mode === 'decode'
                     ? 'bg-white dark:bg-neutral-700 text-gray-900 dark:text-neutral-100 shadow-sm'
                     : 'text-gray-600 dark:text-neutral-400 hover:text-gray-900 dark:hover:text-neutral-200'
@@ -281,92 +281,72 @@ const EncodeView = ({ onConvert, disabled, messageName }: EncodeViewProps) => {
     URL.revokeObjectURL(url);
   };
 
-  const gridCols = ENCODE_FORMATS.length >= 4 ? 'grid-cols-4' : 'grid-cols-3';
-
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="p-4 space-y-4 border-b border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800">
+      <div className="px-3 pt-3 pb-3 space-y-3 border-b border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800">
+        {/* Format selector */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-neutral-300 mb-2">
-            Output Format
-          </label>
-          <div className={`grid ${gridCols} gap-2`}>
+          <div className="text-[10px] uppercase tracking-wide font-semibold text-gray-500 dark:text-neutral-400 mb-1.5">
+            Format
+          </div>
+          <div className="flex gap-0.5 p-0.5 bg-gray-200 dark:bg-neutral-900 rounded">
             {ENCODE_FORMATS.map((format) => (
-              <label
+              <button
                 key={format.value}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 cursor-pointer transition-all ${
-                  selectedFormat === format.value
-                    ? 'border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/30'
-                    : 'border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 hover:border-gray-300 dark:hover:border-neutral-600'
-                }`}
+                onClick={() => {
+                  setSelectedFormat(format.value);
+                  setResult(null);
+                }}
                 title={format.experimental ? 'Experimental — encode-only, not roundtrip-verified' : undefined}
+                className={`flex-1 px-2 py-1 text-xs font-medium rounded transition-colors ${
+                  selectedFormat === format.value
+                    ? 'bg-white dark:bg-neutral-700 text-gray-900 dark:text-neutral-100 shadow-sm'
+                    : 'text-gray-600 dark:text-neutral-400 hover:text-gray-900 dark:hover:text-neutral-200'
+                }`}
               >
-                <input
-                  type="radio"
-                  name="format"
-                  value={format.value}
-                  checked={selectedFormat === format.value}
-                  onChange={() => {
-                    setSelectedFormat(format.value);
-                    setResult(null);
-                  }}
-                  className="w-4 h-4 text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-400"
-                />
-                <span
-                  className={`text-sm font-medium ${
-                    selectedFormat === format.value
-                      ? 'text-blue-700 dark:text-blue-300'
-                      : 'text-gray-700 dark:text-neutral-300'
-                  }`}
-                >
-                  {format.label}
-                  {format.experimental && (
-                    <span className="ml-1 text-[10px] text-amber-600 dark:text-amber-400">⚠</span>
-                  )}
-                </span>
-              </label>
+                {format.label}
+                {format.experimental && (
+                  <span className="ml-0.5 text-amber-600 dark:text-amber-400">⚠</span>
+                )}
+              </button>
             ))}
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-neutral-300 mb-2">
-            Actions
-          </label>
-          <div className="flex gap-2">
-            <button
-              onClick={handleConvert}
-              disabled={disabled}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-500 dark:bg-blue-500/80 text-white rounded-lg hover:bg-blue-600 dark:hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-all font-medium text-sm"
-            >
-              <Play size={16} />
-              Convert
-            </button>
-            <button
-              onClick={handleCopy}
-              disabled={!result || !!result.error || selectedFormat === 'binary'}
-              className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white dark:bg-neutral-800 border border-gray-300 dark:border-neutral-600 text-gray-700 dark:text-neutral-300 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-700 disabled:bg-gray-50 dark:disabled:bg-neutral-800 disabled:text-gray-400 dark:disabled:text-neutral-600 disabled:cursor-not-allowed transition-all text-sm font-medium"
-              title={selectedFormat === 'binary' ? 'Binary cannot be copied to clipboard — use Download' : 'Copy to clipboard'}
-            >
-              <Copy size={16} />
-              {copied ? 'Copied!' : 'Copy'}
-            </button>
-            <button
-              onClick={handleDownload}
-              disabled={!result || !!result.error}
-              className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white dark:bg-neutral-800 border border-gray-300 dark:border-neutral-600 text-gray-700 dark:text-neutral-300 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-700 disabled:bg-gray-50 dark:disabled:bg-neutral-800 disabled:text-gray-400 dark:disabled:text-neutral-600 disabled:cursor-not-allowed transition-all text-sm font-medium"
-              title="Download file"
-            >
-              <Download size={16} />
-            </button>
-          </div>
+        {/* Primary action — Convert. Secondary buttons sit beside it. */}
+        <div className="flex gap-1.5">
+          <button
+            onClick={handleConvert}
+            disabled={disabled}
+            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium bg-blue-500 dark:bg-blue-500/90 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
+          >
+            <Play size={14} />
+            Convert
+          </button>
+          <button
+            onClick={handleCopy}
+            disabled={!result || !!result.error || selectedFormat === 'binary'}
+            className="flex items-center justify-center gap-1 px-2.5 py-2 text-xs bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-neutral-300 rounded hover:bg-gray-50 dark:hover:bg-neutral-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            title={selectedFormat === 'binary' ? 'Binary cannot be copied to clipboard — use Download' : 'Copy to clipboard'}
+          >
+            <Copy size={13} />
+            {copied ? 'Copied' : 'Copy'}
+          </button>
+          <button
+            onClick={handleDownload}
+            disabled={!result || !!result.error}
+            className="flex items-center justify-center px-2.5 py-2 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-neutral-300 rounded hover:bg-gray-50 dark:hover:bg-neutral-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            title="Download file"
+          >
+            <Download size={13} />
+          </button>
         </div>
       </div>
 
       <div className="flex-1 flex flex-col overflow-hidden p-3">
-        <label className="block text-sm font-semibold text-gray-700 dark:text-neutral-300 mb-2">
+        <div className="text-[10px] uppercase tracking-wide font-semibold text-gray-500 dark:text-neutral-400 mb-1.5">
           Result
-        </label>
+        </div>
         <div
           className={`flex-1 border rounded overflow-hidden ${
             result?.error
@@ -525,54 +505,44 @@ const DecodeView = ({ onDecode, onDecoded, disabled, messageName }: DecodeViewPr
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="p-4 space-y-4 border-b border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800">
+      <div className="px-3 pt-3 pb-3 space-y-3 border-b border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800">
+        {/* Format selector */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-neutral-300 mb-2">
-            Input Format
-          </label>
-          <div className="grid grid-cols-2 gap-2">
-            {DECODE_FORMATS.map((format) => (
-              <label
-                key={format.value}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 cursor-pointer transition-all ${
-                  selectedFormat === format.value && !binaryInput
-                    ? 'border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/30'
-                    : 'border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 hover:border-gray-300 dark:hover:border-neutral-600'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="decode-format"
-                  value={format.value}
-                  checked={selectedFormat === format.value && !binaryInput}
-                  onChange={() => handleSetFormat(format.value)}
-                  className="w-4 h-4 text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-400"
-                />
-                <span
-                  className={`text-sm font-medium ${
-                    selectedFormat === format.value && !binaryInput
-                      ? 'text-blue-700 dark:text-blue-300'
-                      : 'text-gray-700 dark:text-neutral-300'
+          <div className="text-[10px] uppercase tracking-wide font-semibold text-gray-500 dark:text-neutral-400 mb-1.5">
+            Input format
+          </div>
+          <div className="flex gap-0.5 p-0.5 bg-gray-200 dark:bg-neutral-900 rounded">
+            {DECODE_FORMATS.map((format) => {
+              const isActive = selectedFormat === format.value && !binaryInput;
+              return (
+                <button
+                  key={format.value}
+                  onClick={() => handleSetFormat(format.value)}
+                  className={`flex-1 px-2 py-1 text-xs font-medium rounded transition-colors ${
+                    isActive
+                      ? 'bg-white dark:bg-neutral-700 text-gray-900 dark:text-neutral-100 shadow-sm'
+                      : 'text-gray-600 dark:text-neutral-400 hover:text-gray-900 dark:hover:text-neutral-200'
                   }`}
                 >
                   {format.label}
-                </span>
-              </label>
-            ))}
+                </button>
+              );
+            })}
           </div>
         </div>
 
+        {/* Input area */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-neutral-300 mb-2">
+          <div className="text-[10px] uppercase tracking-wide font-semibold text-gray-500 dark:text-neutral-400 mb-1.5">
             Input
-          </label>
-          <div className="flex gap-2 mb-2">
+          </div>
+          <div className="space-y-1.5">
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-neutral-900 border border-gray-300 dark:border-neutral-600 text-gray-700 dark:text-neutral-300 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-700 transition-all text-sm font-medium"
+              className="w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-neutral-300 rounded hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
               title="Upload file (.bin treated as raw binary, .txt/.hex/.b64 as text)"
             >
-              <Upload size={14} />
+              <Upload size={13} />
               Upload file
             </button>
             <input
@@ -584,74 +554,67 @@ const DecodeView = ({ onDecode, onDecoded, disabled, messageName }: DecodeViewPr
                 if (file) handleFile(file);
               }}
             />
-            {binaryFileName && (
-              <div className="flex-1 flex items-center justify-between gap-2 px-3 py-2 bg-white dark:bg-neutral-900 border border-gray-300 dark:border-neutral-600 rounded-lg text-xs text-gray-600 dark:text-neutral-400 truncate">
-                <span className="truncate">
-                  {binaryFileName} ({binaryInput?.length ?? 0} bytes, raw binary)
+            {binaryFileName ? (
+              <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded text-xs text-gray-600 dark:text-neutral-400">
+                <span className="truncate" title={binaryFileName}>
+                  {binaryFileName} · {binaryInput?.length ?? 0} bytes
                 </span>
                 <button
                   onClick={handleClearFile}
-                  className="text-gray-400 hover:text-gray-700 dark:hover:text-neutral-200"
+                  className="text-gray-400 hover:text-gray-700 dark:hover:text-neutral-200 flex-shrink-0"
                   title="Clear file"
                 >
                   ×
                 </button>
               </div>
+            ) : (
+              <textarea
+                value={input}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  setDecodeError(null);
+                }}
+                placeholder={
+                  selectedFormat === 'base64'
+                    ? 'Paste Base64 string (e.g. CgVIZWxsbw==)'
+                    : 'Paste hex string (e.g. 0a0548656c6c6f)'
+                }
+                spellCheck={false}
+                className="w-full h-24 px-2.5 py-1.5 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded text-sm font-mono text-gray-800 dark:text-neutral-200 resize-none focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-400"
+              />
             )}
           </div>
-          {!binaryFileName && (
-            <textarea
-              value={input}
-              onChange={(e) => {
-                setInput(e.target.value);
-                setDecodeError(null);
-              }}
-              placeholder={
-                selectedFormat === 'base64'
-                  ? 'Paste Base64 string (e.g. CgVIZWxsbw==)'
-                  : 'Paste hex string (e.g. 0a0548656c6c6f)'
-              }
-              spellCheck={false}
-              className="w-full h-24 px-3 py-2 bg-white dark:bg-neutral-900 border border-gray-300 dark:border-neutral-600 rounded-lg text-sm font-mono text-gray-800 dark:text-neutral-200 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          )}
         </div>
 
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-neutral-300 mb-2">
-            Actions
-          </label>
-          <div className="flex gap-2">
-            <button
-              onClick={handleDecode}
-              disabled={disabled}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-500 dark:bg-blue-500/80 text-white rounded-lg hover:bg-blue-600 dark:hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-all font-medium text-sm"
-              title="Decode and replace JSON in the editor"
-            >
-              <Play size={16} />
-              Decode
-            </button>
-          </div>
-          {disabled && (
-            <p className="mt-2 text-xs text-gray-500 dark:text-neutral-400">
-              Select a message type in the file tree first.
-            </p>
-          )}
-        </div>
+        {/* Primary action */}
+        <button
+          onClick={handleDecode}
+          disabled={disabled}
+          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium bg-blue-500 dark:bg-blue-500/90 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
+          title="Decode and replace JSON in the editor"
+        >
+          <Play size={14} />
+          Decode
+        </button>
+        {disabled && (
+          <p className="text-xs text-gray-500 dark:text-neutral-400">
+            Select a message type in the file tree first.
+          </p>
+        )}
       </div>
 
       <div className="flex-1 flex flex-col overflow-auto p-3 space-y-3">
         {decodeError ? (
-          <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+          <div className="p-2.5 rounded bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
             <div className="flex items-start gap-2">
-              <AlertTriangle size={16} className="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+              <AlertTriangle size={14} className="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
               <pre className="text-xs font-mono text-red-700 dark:text-red-300 whitespace-pre-wrap break-all">
                 {decodeError}
               </pre>
             </div>
           </div>
         ) : (
-          <p className="text-gray-400 dark:text-neutral-500 italic text-center pt-4 text-sm">
+          <p className="text-xs text-gray-400 dark:text-neutral-500 italic text-center pt-4">
             Decoded JSON will replace the editor on the left.
           </p>
         )}

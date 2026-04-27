@@ -1,14 +1,15 @@
-import { useState, useEffect, useRef } from 'react';
-import { ProtoUploader } from './components/ProtoUploader';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { FileTreeNavigator } from './components/FileTreeNavigator';
 import { JsonEditor } from './components/JsonEditor';
 import { OutputPanel } from './components/OutputPanel';
 import { ErrorPanel } from './components/ErrorPanel';
 import { ImportResolver } from './components/ImportResolver';
 import { ThemeToggle } from './components/ThemeToggle';
+import { ProjectToolbar } from './components/ProjectToolbar';
 import { useProtobuf } from './hooks/useProtobuf';
 import { useConversion } from './hooks/useConversion';
 import { useDecode } from './hooks/useDecode';
+import { useProjects } from './hooks/useProjects';
 import { EXPERIMENTAL_TEXTPROTO } from './config';
 import { generateDefaultMessageJson } from './utils/generateDefaultMessage';
 import { saveMessageState, loadMessageState } from './utils/messageStateStorage';
@@ -20,7 +21,6 @@ const DEFAULT_JSON = `{
 function App() {
   const [jsonValue, setJsonValue] = useState<string>(DEFAULT_JSON);
   const [validationError, setValidationError] = useState<string | null>(null);
-  const isInitialMount = useRef(true);
 
   const {
     root,
@@ -38,64 +38,63 @@ function App() {
     generateJsonSchema,
     getMessageDefinition,
     clearProto,
-    loadFromLocalStorage,
     removeFile,
   } = useProtobuf();
 
   const { convert } = useConversion(root, selectedMessage);
   const { decode } = useDecode(root, selectedMessage);
 
-  // Load saved proto on mount
-  useEffect(() => {
-    loadFromLocalStorage();
-  }, [loadFromLocalStorage]);
+  // Imperative ref so useProjects can flush the pending JSON edit before
+  // switching/exporting/importing without becoming a controlled component itself.
+  const flushPendingJsonRef = useRef<() => void>(() => {});
+  const flushPendingJsonEdit = useCallback(() => {
+    flushPendingJsonRef.current();
+  }, []);
 
-  // Load or generate JSON when selectedMessage changes
+  const projectsApi = useProjects(
+    { loadedFiles, mainFile, loadProtoFiles, clearProto },
+    flushPendingJsonEdit
+  );
+  const {
+    projects,
+    currentProject,
+    currentProjectId,
+    createProject,
+    switchProject,
+    renameProject,
+    deleteProject: deleteProjectAction,
+    exportCurrent,
+    importFromFile,
+  } = projectsApi;
+
+  // Load or generate JSON when selectedMessage or active project changes
   useEffect(() => {
-    if (!root || !selectedMessage) return;
+    if (!root || !selectedMessage || !currentProjectId) return;
 
     const loadMessageContent = async () => {
       try {
-        // Try to load saved state for this message
-        const savedState = await loadMessageState(selectedMessage);
+        const savedState = await loadMessageState(currentProjectId, selectedMessage);
 
         if (savedState && savedState.jsonContent) {
-          // Validate saved content
           const validation = validateJson(savedState.jsonContent);
-
           if (validation.valid) {
-            // Use saved content if valid
             setJsonValue(savedState.jsonContent);
             return;
-          } else {
-            console.warn(`Saved state for ${selectedMessage} is invalid, generating defaults`);
           }
+          console.warn(`Saved state for ${selectedMessage} is invalid, generating defaults`);
         }
 
-        // No saved state or invalid - generate default message
         const messageType = root.lookupType(selectedMessage);
         const defaultJson = generateDefaultMessageJson(messageType, 2);
         setJsonValue(defaultJson);
       } catch (error) {
         console.error('Error loading message content:', error);
-        // Fallback to default JSON
         setJsonValue(DEFAULT_JSON);
       }
     };
 
-    // Skip loading on initial mount if we're restoring from old localStorage
-    if (isInitialMount.current) {
-      const oldSavedJson = localStorage.getItem('lastJson');
-      if (oldSavedJson) {
-        // Use old saved JSON for first load, then migrate to new system
-        setJsonValue(oldSavedJson);
-        isInitialMount.current = false;
-        return;
-      }
-    }
-
     loadMessageContent();
-  }, [selectedMessage, root, validateJson]);
+  }, [selectedMessage, root, validateJson, currentProjectId]);
 
   // Validate JSON whenever it changes
   useEffect(() => {
@@ -111,24 +110,27 @@ function App() {
     }
   }, [jsonValue, root, selectedMessage, validateJson]);
 
-  // Save JSON to IndexedDB per message type (with debounce)
+  // Save JSON to IndexedDB per (project, message) (with debounce)
   useEffect(() => {
-    if (!selectedMessage || !jsonValue) return;
+    if (!selectedMessage || !jsonValue || !currentProjectId) return;
 
     const timeoutId = setTimeout(() => {
-      saveMessageState(selectedMessage, jsonValue).catch((error) => {
+      saveMessageState(currentProjectId, selectedMessage, jsonValue).catch((error) => {
         console.error('Failed to save message state:', error);
       });
-
-      // Also save to old localStorage for backward compatibility (migration period)
-      localStorage.setItem('lastJson', jsonValue);
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [jsonValue, selectedMessage]);
+  }, [jsonValue, selectedMessage, currentProjectId]);
 
-  const handleFileSelect = async (file: File) => {
-    await loadProtoFile(file);
+  // Imperative flush: write the latest jsonValue immediately. Used before
+  // switching/exporting projects so we don't lose the in-flight debounced edit.
+  flushPendingJsonRef.current = () => {
+    if (selectedMessage && jsonValue && currentProjectId) {
+      // Fire and forget — switch flow doesn't await this; the write is fast
+      // and IndexedDB will serialize it before any subsequent reads.
+      saveMessageState(currentProjectId, selectedMessage, jsonValue).catch(() => {});
+    }
   };
 
   const handleLoadExample = async () => {
@@ -142,9 +144,23 @@ function App() {
           return { importPath: name, content: await res.text() };
         })
       );
+      // Loading the example creates a fresh project so the user's current
+      // work is never overwritten.
+      await createProject('Ecommerce example');
       await loadProtoFiles(fetched, 'main.proto', 'ecommerce.api.OrderRequest');
     } catch (error) {
       console.error('Failed to load example project:', error);
+    }
+  };
+
+  // Hidden input for "Add file" toolbar button.
+  const addFileInputRef = useRef<HTMLInputElement | null>(null);
+  const handleAddFile = () => addFileInputRef.current?.click();
+  const handleImportFromFile = async (file: File) => {
+    try {
+      await importFromFile(file);
+    } catch (err) {
+      alert(`Import failed: ${err instanceof Error ? err.message : 'unknown error'}`);
     }
   };
 
@@ -204,15 +220,36 @@ function App() {
       <main className="flex-1 flex overflow-hidden">
         {/* Left Sidebar */}
         <aside className="w-72 bg-white dark:bg-neutral-900 border-r border-gray-200 dark:border-neutral-700 flex flex-col overflow-hidden">
-          <div className="flex-shrink-0">
-            <ProtoUploader
-              onFileSelect={handleFileSelect}
+          <div className="flex-shrink-0 px-3 pt-3">
+            <ProjectToolbar
+              projects={projects}
+              currentProject={currentProject}
+              onAddFile={handleAddFile}
+              onCreateProject={() => createProject()}
               onLoadExample={handleLoadExample}
-              hasFile={!!root}
+              onSwitchProject={switchProject}
+              onRenameProject={renameProject}
+              onDeleteProject={deleteProjectAction}
+              onExportCurrent={exportCurrent}
+              onImportFromFile={handleImportFromFile}
             />
-
-            {protoError && <ErrorPanel error={protoError} />}
+            <input
+              ref={addFileInputRef}
+              type="file"
+              accept=".proto"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) loadProtoFile(file);
+                e.currentTarget.value = '';
+              }}
+            />
           </div>
+          {protoError && (
+            <div className="flex-shrink-0">
+              <ErrorPanel error={protoError} />
+            </div>
+          )}
 
           {root && (
             <div className="flex-1 overflow-hidden">
@@ -280,9 +317,23 @@ function App() {
                   <h2 className="text-xl font-bold text-gray-900 dark:text-neutral-100 mb-2">
                     Welcome to Protobuf Studio
                   </h2>
-                  <p className="text-gray-600 dark:text-neutral-400 text-sm mb-4">
-                    Upload a .proto file to start editing and converting Protobuf messages
+                  <p className="text-gray-600 dark:text-neutral-400 text-sm mb-5">
+                    Add a .proto file to this project, or load the example to see the app in action.
                   </p>
+                  <div className="flex items-center justify-center gap-2 mb-6">
+                    <button
+                      onClick={handleAddFile}
+                      className="px-4 py-2 text-sm font-medium bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                    >
+                      Add .proto file
+                    </button>
+                    <button
+                      onClick={handleLoadExample}
+                      className="px-4 py-2 text-sm font-medium bg-white dark:bg-neutral-800 text-gray-700 dark:text-neutral-200 border border-gray-300 dark:border-neutral-600 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors"
+                    >
+                      Load example project
+                    </button>
+                  </div>
                   <div className="space-y-2 text-xs text-gray-500 dark:text-neutral-400">
                     <div className="flex items-center justify-center gap-2">
                       <span className="w-2 h-2 bg-green-500 rounded-full"></span>

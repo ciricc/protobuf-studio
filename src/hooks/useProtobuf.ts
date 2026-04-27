@@ -267,11 +267,6 @@ export const useProtobuf = () => {
           preferredMessage || state.selectedMessage
         );
         setState(newState);
-        localStorage.setItem(
-          'protoFiles',
-          JSON.stringify(Array.from(newLoadedFiles.entries()))
-        );
-        if (mainFileName) localStorage.setItem('mainFile', mainFileName);
       } catch (error) {
         setState((prev) => ({
           ...prev,
@@ -299,13 +294,6 @@ export const useProtobuf = () => {
         const newState = await parseFiles(newLoadedFiles, mainFileName, state.selectedMessage);
 
         setState(newState);
-
-        // Сохраняем в localStorage
-        localStorage.setItem(
-          'protoFiles',
-          JSON.stringify(Array.from(newLoadedFiles.entries()))
-        );
-        localStorage.setItem('mainFile', mainFileName);
       } catch (error) {
         setState((prev) => ({
           ...prev,
@@ -449,10 +437,6 @@ export const useProtobuf = () => {
       mainFile: null,
       messageContext: null,
     });
-    localStorage.removeItem('protoFiles');
-    localStorage.removeItem('mainFile');
-    localStorage.removeItem('lastProtoFile');
-    localStorage.removeItem('lastFileName');
   }, []);
 
   const loadFromLocalStorage = useCallback(async () => {
