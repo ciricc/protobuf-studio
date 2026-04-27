@@ -89,7 +89,7 @@ export const ImportResolver: React.FC<ImportResolverProps> = ({
                     </div>
                   </div>
                 ) : (
-                  <label className="cursor-pointer block p-2 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 hover:border-blue-400 dark:hover:border-blue-500 transition-all rounded">
+                  <label className="cursor-pointer block p-2 hover:bg-gray-100 dark:hover:bg-neutral-800 hover:border-gray-400 dark:hover:border-neutral-600 transition-all rounded">
                     <input
                       type="file"
                       accept=".proto"
@@ -105,7 +105,7 @@ export const ImportResolver: React.FC<ImportResolverProps> = ({
                         }
                       }}
                     />
-                    <code className="text-xs font-mono text-gray-700 dark:text-neutral-300 break-all hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                    <code className="text-xs font-mono text-gray-700 dark:text-neutral-300 break-all hover:text-gray-900 dark:hover:text-neutral-100 transition-colors">
                       {importPath}
                     </code>
                   </label>

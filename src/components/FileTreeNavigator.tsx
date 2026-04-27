@@ -252,7 +252,7 @@ export const FileTreeNavigator: React.FC<FileTreeNavigatorProps> = ({
       }
       // Add highlighted match
       parts.push(
-        <mark key={idx} className="bg-blue-200 dark:bg-blue-700 text-inherit rounded px-0.5">
+        <mark key={idx} className="bg-yellow-200 dark:bg-yellow-500/30 text-inherit rounded px-0.5">
           {text.substring(start, end)}
         </mark>
       );
@@ -482,7 +482,7 @@ export const FileTreeNavigator: React.FC<FileTreeNavigatorProps> = ({
         key={message.fullName}
         className={`flex items-center gap-1.5 py-1 px-1.5 cursor-pointer transition-colors rounded text-sm ${
           isSelected
-            ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-900 dark:text-blue-100'
+            ? 'bg-gray-200 dark:bg-neutral-700 text-gray-900 dark:text-neutral-100'
             : 'hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-700 dark:text-neutral-300'
         }`}
         style={{ paddingLeft }}
@@ -584,7 +584,7 @@ export const FileTreeNavigator: React.FC<FileTreeNavigatorProps> = ({
             </>
           )}
           {!hasContent && <div className="w-3" />}
-          <File size={14} className="flex-shrink-0 text-blue-600 dark:text-blue-400" />
+          <File size={14} className="flex-shrink-0 text-gray-500 dark:text-neutral-400" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1">
               <span className="text-sm font-medium text-gray-900 dark:text-neutral-100 truncate" title={file.path}>
@@ -641,7 +641,7 @@ export const FileTreeNavigator: React.FC<FileTreeNavigatorProps> = ({
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Search messages..."
-            className="relative z-10 w-full pl-8 pr-16 py-1.5 text-sm bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 focus:border-transparent text-gray-900 dark:text-neutral-100 placeholder-gray-400 dark:placeholder-neutral-500"
+            className="relative z-10 w-full pl-8 pr-16 py-1.5 text-sm bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded focus:outline-none focus:ring-1 focus:ring-neutral-400 dark:focus:ring-neutral-500 focus:border-transparent text-gray-900 dark:text-neutral-100 placeholder-gray-400 dark:placeholder-neutral-500"
           />
           <div className="absolute inset-y-0 right-0 flex items-center gap-0.5 pr-1 z-20">
             {searchQuery && (

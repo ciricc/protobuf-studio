@@ -36,113 +36,118 @@ export const customDarkTheme: editor.IStandaloneThemeData = {
 export const gruvboxDarkHardTheme: editor.IStandaloneThemeData = {
   base: 'vs-dark',
   inherit: true,
+  // Near-monochrome palette: only literal values (strings, numbers,
+  // true/false/null) carry color. Everything else — keywords, types,
+  // identifiers, brackets, delimiters — sits on the foreground or a muted
+  // gray. Goal is structural reading from indentation/layout, not from
+  // a sea of token colors.
   rules: [
-    // Base colors
-    { token: '', foreground: 'ebdbb2', background: '1d2021' },
+    // Base
+    { token: '', foreground: 'd4d4d4', background: '171717' }, // neutral-300
 
-    // Comments
-    { token: 'comment', foreground: '928374', fontStyle: 'italic' },
+    // Muted
+    { token: 'comment', foreground: '737373', fontStyle: 'italic' }, // neutral-500
+    { token: 'delimiter', foreground: '737373' },
+    { token: 'delimiter.bracket', foreground: '737373' },
 
-    // Keywords and operators
-    { token: 'keyword', foreground: 'fb4934' },
-    { token: 'keyword.operator', foreground: 'fe8019' },
-    { token: 'keyword.control', foreground: 'fb4934' },
-
-    // Strings
-    { token: 'string', foreground: 'b8bb26' },
-    { token: 'string.escape', foreground: 'fe8019' },
-
-    // Numbers
-    { token: 'number', foreground: 'd3869b' },
+    // Literal values (only these carry color)
+    { token: 'string', foreground: 'b8bb26' }, // green
+    { token: 'string.escape', foreground: 'b8bb26' },
+    { token: 'number', foreground: 'd3869b' }, // pink
     { token: 'number.hex', foreground: 'd3869b' },
     { token: 'number.binary', foreground: 'd3869b' },
     { token: 'number.octal', foreground: 'd3869b' },
-
-    // Types and classes
-    { token: 'type', foreground: 'fabd2f' },
-    { token: 'type.identifier', foreground: 'fabd2f' },
-    { token: 'class', foreground: 'fabd2f' },
-
-    // Functions
-    { token: 'function', foreground: '8ec07c' },
-    { token: 'function.call', foreground: '8ec07c' },
-
-    // Variables and identifiers
-    { token: 'identifier', foreground: 'ebdbb2' },
-    { token: 'variable', foreground: '83a598' },
-    { token: 'variable.predefined', foreground: 'd3869b' },
-
-    // Constants
     { token: 'constant', foreground: 'd3869b' },
 
-    // Tags (for HTML/XML)
-    { token: 'tag', foreground: '8ec07c' },
-    { token: 'tag.attribute', foreground: 'fabd2f' },
+    // Structural keywords (`message`, `enum`, `repeated`, `package`, …)
+    // get a soft pink so the schema's skeleton is readable at a glance.
+    { token: 'keyword', foreground: 'd3869b' },
+    { token: 'keyword.operator', foreground: 'd4d4d4' },
+    { token: 'keyword.control', foreground: 'd3869b' },
+    // Types are proto's only "values" — give them one soft accent so the
+    // schema isn't a wall of white. Aqua complements green/pink without
+    // competing for attention.
+    { token: 'type', foreground: '8ec07c' },
+    { token: 'type.identifier', foreground: '8ec07c' },
+    { token: 'class', foreground: '8ec07c' },
+    { token: 'identifier', foreground: 'd4d4d4' },
+    { token: 'variable', foreground: 'd4d4d4' },
+    { token: 'function', foreground: 'd4d4d4' },
+    { token: 'function.call', foreground: 'd4d4d4' },
+    { token: 'tag', foreground: 'd4d4d4' },
+    { token: 'tag.attribute', foreground: 'd4d4d4' },
+    { token: 'annotation', foreground: 'd4d4d4' },
+    { token: 'attribute', foreground: 'd4d4d4' },
 
-    // Delimiters
-    { token: 'delimiter', foreground: 'a89984' },
-    { token: 'delimiter.bracket', foreground: 'a89984' },
-
-    // Annotations
-    { token: 'annotation', foreground: 'fe8019' },
-    { token: 'attribute', foreground: 'fabd2f' },
-
-    // Invalid and errors
+    // Errors stay loud
     { token: 'invalid', foreground: 'fb4934', fontStyle: 'bold' },
+
+    // JSON-specific scopes (Monaco's JSON tokenizer uses its own names)
+    { token: 'string.key.json', foreground: 'd4d4d4' }, // keys → foreground
+    { token: 'string.value.json', foreground: 'b8bb26' }, // values → green
+    { token: 'number.json', foreground: 'd3869b' }, // numbers → pink
+    { token: 'keyword.json', foreground: 'd3869b' }, // true/false/null → pink
+    { token: 'delimiter.bracket.json', foreground: '737373' },
+    { token: 'delimiter.array.json', foreground: '737373' },
+    { token: 'delimiter.colon.json', foreground: '737373' },
+    { token: 'delimiter.comma.json', foreground: '737373' },
   ],
+  // Chrome colors are pinned to Tailwind's neutral palette so the editor
+  // blends seamlessly with the surrounding panels (`bg-neutral-900` etc.).
+  // Only the syntax-token foregrounds keep their gruvbox warmth.
   colors: {
     // Editor background and foreground
-    'editor.background': '#1d2021', // Gruvbox dark hard background
-    'editor.foreground': '#ebdbb2', // Gruvbox light foreground
+    'editor.background': '#171717', // neutral-900 — matches panel chrome
+    'editor.foreground': '#e5e5e5', // neutral-200
 
     // Line highlighting
-    'editor.lineHighlightBackground': '#282828',
+    'editor.lineHighlightBackground': '#1f1f1f',
     'editor.lineHighlightBorder': '#00000000',
 
     // Line numbers
-    'editorLineNumber.foreground': '#665c54', // Gruvbox dark4
-    'editorLineNumber.activeForeground': '#a89984', // Gruvbox light4
+    'editorLineNumber.foreground': '#525252', // neutral-600
+    'editorLineNumber.activeForeground': '#a3a3a3', // neutral-400
 
     // Selection
-    'editor.selectionBackground': '#504945', // Gruvbox dark2
-    'editor.inactiveSelectionBackground': '#3c3836', // Gruvbox dark1
-    'editor.selectionHighlightBackground': '#45403d',
+    'editor.selectionBackground': '#404040', // neutral-700
+    'editor.inactiveSelectionBackground': '#262626', // neutral-800
+    'editor.selectionHighlightBackground': '#2d2d2d',
 
     // Cursor
-    'editorCursor.foreground': '#ebdbb2', // Gruvbox light foreground
+    'editorCursor.foreground': '#e5e5e5', // neutral-200
 
     // Whitespace
-    'editorWhitespace.foreground': '#3c3836', // Gruvbox dark1
+    'editorWhitespace.foreground': '#262626', // neutral-800
 
     // Indent guides
-    'editorIndentGuide.background': '#3c3836',
-    'editorIndentGuide.activeBackground': '#665c54',
+    'editorIndentGuide.background': '#262626', // neutral-800
+    'editorIndentGuide.activeBackground': '#404040', // neutral-700
 
     // Scrollbar
-    'scrollbarSlider.background': '#3c383680',
-    'scrollbarSlider.hoverBackground': '#504945b0',
-    'scrollbarSlider.activeBackground': '#665c54e0',
+    'scrollbarSlider.background': '#40404080',
+    'scrollbarSlider.hoverBackground': '#525252b0',
+    'scrollbarSlider.activeBackground': '#737373e0',
 
     // Editor widgets
-    'editorWidget.background': '#282828',
-    'editorWidget.border': '#504945',
+    'editorWidget.background': '#1f1f1f',
+    'editorWidget.border': '#404040',
 
     // Suggest widget
-    'editorSuggestWidget.background': '#282828',
-    'editorSuggestWidget.border': '#504945',
-    'editorSuggestWidget.foreground': '#ebdbb2',
-    'editorSuggestWidget.selectedBackground': '#504945',
+    'editorSuggestWidget.background': '#1f1f1f',
+    'editorSuggestWidget.border': '#404040',
+    'editorSuggestWidget.foreground': '#e5e5e5',
+    'editorSuggestWidget.selectedBackground': '#404040',
 
     // Hover widget
-    'editorHoverWidget.background': '#282828',
-    'editorHoverWidget.border': '#504945',
+    'editorHoverWidget.background': '#1f1f1f',
+    'editorHoverWidget.border': '#404040',
 
     // Gutter
-    'editorGutter.background': '#1d2021',
+    'editorGutter.background': '#171717', // neutral-900
 
     // Bracket matching
-    'editorBracketMatch.background': '#504945',
-    'editorBracketMatch.border': '#a89984',
+    'editorBracketMatch.background': '#404040',
+    'editorBracketMatch.border': '#a3a3a3',
   },
 };
 

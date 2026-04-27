@@ -86,46 +86,44 @@ export const MessageDefinition = ({ definition }: MessageDefinitionProps) => {
         </button>
       </div>
 
-      {/* Editor area */}
-      <div className="flex-1 flex flex-col overflow-hidden p-3">
-        <div className="flex-1 border rounded overflow-hidden bg-gray-50 dark:bg-neutral-800 border-gray-200 dark:border-neutral-700">
-          {definition ? (
-            <Editor
-              value={definition}
-              language="protobuf"
-              theme={theme === 'dark' ? 'gruvbox-dark-hard' : 'vs'}
-              beforeMount={handleEditorWillMount}
-              onMount={handleEditorDidMount}
-              options={{
-                readOnly: true,
-                minimap: { enabled: false },
-                scrollBeyondLastLine: false,
-                fontSize: 13,
-                lineNumbers: 'on',
-                renderLineHighlight: 'none',
-                scrollbar: {
-                  vertical: 'auto',
-                  horizontal: 'auto',
-                  useShadows: false,
-                  verticalScrollbarSize: 10,
-                  horizontalScrollbarSize: 10,
-                },
-                overviewRulerLanes: 0,
-                hideCursorInOverviewRuler: true,
-                overviewRulerBorder: false,
-                wordWrap: 'off',
-                fontFamily: "'JetBrains Mono', 'Fira Code', 'Monaco', 'Courier New', monospace",
-                padding: { top: 12, bottom: 12 },
-              }}
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full">
-              <p className="text-gray-400 dark:text-neutral-500 italic text-center text-sm">
-                Select a message to view its definition
-              </p>
-            </div>
-          )}
-        </div>
+      {/* Editor area — flush, no card wrapper, to match JsonEditor chrome. */}
+      <div className="flex-1 overflow-hidden">
+        {definition ? (
+          <Editor
+            height="100%"
+            value={definition}
+            language="protobuf"
+            theme={theme === 'dark' ? 'gruvbox-dark-hard' : 'vs'}
+            beforeMount={handleEditorWillMount}
+            onMount={handleEditorDidMount}
+            options={{
+              readOnly: true,
+              minimap: { enabled: false },
+              scrollBeyondLastLine: false,
+              fontSize: 14,
+              lineNumbers: 'on',
+              renderLineHighlight: 'none',
+              scrollbar: {
+                vertical: 'auto',
+                horizontal: 'auto',
+                useShadows: false,
+                verticalScrollbarSize: 10,
+                horizontalScrollbarSize: 10,
+              },
+              overviewRulerLanes: 0,
+              hideCursorInOverviewRuler: true,
+              overviewRulerBorder: false,
+              wordWrap: 'off',
+              padding: { top: 12, bottom: 12 },
+            }}
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-gray-400 dark:text-neutral-500 italic text-center text-sm">
+              Select a message to view its definition
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

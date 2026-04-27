@@ -26,7 +26,7 @@ export const MessageSelector = ({ messages, selectedMessage, onSelect, disabled 
           value={selectedMessage || ''}
           onChange={(e) => onSelect(e.target.value)}
           disabled={disabled || messages.length === 0}
-          className="w-full appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 pr-7 text-sm font-mono text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
+          className="w-full appearance-none bg-white dark:bg-neutral-800 border border-gray-300 dark:border-neutral-600 rounded-lg px-2 py-1.5 pr-7 text-sm font-mono text-gray-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400 dark:focus:ring-neutral-500 focus:border-neutral-400 dark:focus:border-neutral-500 disabled:bg-gray-50 dark:disabled:bg-neutral-800 disabled:cursor-not-allowed hover:border-gray-400 dark:hover:border-neutral-500 transition-colors"
         >
           {messages.map((message) => (
             <option key={message} value={message}>

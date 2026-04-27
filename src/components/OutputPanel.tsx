@@ -57,7 +57,7 @@ export const OutputPanel = ({
           onClick={() => setActiveTab('output')}
           className={`px-3 py-2 text-sm font-medium transition-colors rounded-t border-b-2 -mb-[1px] ${
             activeTab === 'output'
-              ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400 bg-white dark:bg-neutral-900'
+              ? 'text-gray-900 dark:text-neutral-100 border-gray-900 dark:border-neutral-100 bg-white dark:bg-neutral-900'
               : 'text-gray-500 dark:text-neutral-400 border-transparent hover:text-gray-700 dark:hover:text-neutral-200 hover:bg-gray-100 dark:hover:bg-neutral-700'
           }`}
         >
@@ -67,7 +67,7 @@ export const OutputPanel = ({
           onClick={() => setActiveTab('schema')}
           className={`px-3 py-2 text-sm font-medium transition-colors rounded-t border-b-2 -mb-[1px] ${
             activeTab === 'schema'
-              ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400 bg-white dark:bg-neutral-900'
+              ? 'text-gray-900 dark:text-neutral-100 border-gray-900 dark:border-neutral-100 bg-white dark:bg-neutral-900'
               : 'text-gray-500 dark:text-neutral-400 border-transparent hover:text-gray-700 dark:hover:text-neutral-200 hover:bg-gray-100 dark:hover:bg-neutral-700'
           }`}
         >
@@ -318,7 +318,7 @@ const EncodeView = ({ onConvert, disabled, messageName }: EncodeViewProps) => {
           <button
             onClick={handleConvert}
             disabled={disabled}
-            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium bg-blue-500 dark:bg-blue-500/90 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded hover:bg-neutral-800 dark:hover:bg-white disabled:bg-gray-300 dark:disabled:bg-neutral-700 disabled:text-gray-500 dark:disabled:text-neutral-500 disabled:cursor-not-allowed transition-colors"
           >
             <Play size={14} />
             Convert
@@ -580,7 +580,7 @@ const DecodeView = ({ onDecode, onDecoded, disabled, messageName }: DecodeViewPr
                     : 'Paste hex string (e.g. 0a0548656c6c6f)'
                 }
                 spellCheck={false}
-                className="w-full h-24 px-2.5 py-1.5 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded text-sm font-mono text-gray-800 dark:text-neutral-200 resize-none focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-400"
+                className="w-full h-24 px-2.5 py-1.5 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded text-sm font-mono text-gray-800 dark:text-neutral-200 resize-none focus:outline-none focus:ring-1 focus:ring-neutral-400 dark:focus:ring-neutral-500"
               />
             )}
           </div>
@@ -590,7 +590,7 @@ const DecodeView = ({ onDecode, onDecoded, disabled, messageName }: DecodeViewPr
         <button
           onClick={handleDecode}
           disabled={disabled}
-          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium bg-blue-500 dark:bg-blue-500/90 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
+          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded hover:bg-neutral-800 dark:hover:bg-white disabled:bg-gray-300 dark:disabled:bg-neutral-700 disabled:text-gray-500 dark:disabled:text-neutral-500 disabled:cursor-not-allowed transition-colors"
           title="Decode and replace JSON in the editor"
         >
           <Play size={14} />

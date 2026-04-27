@@ -118,7 +118,7 @@ export const ProjectToolbar = ({
                       if (e.key === 'Enter') commitRename();
                       if (e.key === 'Escape') setRenaming(false);
                     }}
-                    className="flex-1 px-2 py-1 text-sm bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="flex-1 px-2 py-1 text-sm bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded focus:outline-none focus:ring-1 focus:ring-neutral-400 dark:focus:ring-neutral-500"
                   />
                   <button
                     onClick={commitRename}
@@ -226,7 +226,7 @@ export const ProjectToolbar = ({
       <button
         onClick={onAddFile}
         disabled={!currentProject}
-        className="flex items-center gap-1 px-2.5 py-1.5 text-sm font-medium bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-600 transition-colors text-gray-700 dark:text-neutral-300 disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+        className="flex items-center gap-1 px-2.5 py-1.5 text-sm font-medium bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded hover:bg-gray-100 dark:hover:bg-neutral-800 hover:border-gray-300 dark:hover:border-neutral-600 transition-colors text-gray-700 dark:text-neutral-300 disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
         title="Add a .proto file to the current project"
       >
         <Plus size={14} />

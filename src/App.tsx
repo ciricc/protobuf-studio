@@ -308,8 +308,8 @@ function App() {
             <div className="flex-1 flex items-center justify-center p-8">
               {!root && !protoError ? (
                 <div className="max-w-md text-center">
-                  <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-                    <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-20 h-20 bg-neutral-900 dark:bg-neutral-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                    <svg className="w-10 h-10 text-white dark:text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
                   </div>
@@ -322,7 +322,7 @@ function App() {
                   <div className="flex items-center justify-center gap-2 mb-6">
                     <button
                       onClick={handleAddFile}
-                      className="px-4 py-2 text-sm font-medium bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                      className="px-4 py-2 text-sm font-medium bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-lg hover:bg-neutral-800 dark:hover:bg-white transition-colors"
                     >
                       Add .proto file
                     </button>
@@ -335,15 +335,15 @@ function App() {
                   </div>
                   <div className="space-y-2 text-xs text-gray-500 dark:text-neutral-400">
                     <div className="flex items-center justify-center gap-2">
-                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                      <span className="w-1 h-1 bg-gray-400 dark:bg-neutral-500 rounded-full"></span>
                       <span>100% Local - All processing in your browser</span>
                     </div>
                     <div className="flex items-center justify-center gap-2">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                      <span className="w-1 h-1 bg-gray-400 dark:bg-neutral-500 rounded-full"></span>
                       <span>No Server - No data sent anywhere</span>
                     </div>
                     <div className="flex items-center justify-center gap-2">
-                      <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
+                      <span className="w-1 h-1 bg-gray-400 dark:bg-neutral-500 rounded-full"></span>
                       <span>Auto-Save - Schema & JSON preserved</span>
                     </div>
                   </div>
